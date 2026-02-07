@@ -123,7 +123,7 @@ export function FeaturesSection() {
         {/* Feature Cards Grid */}
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, i) => (
-            <AnimateOnScroll key={i} delay={i * 100} direction={i % 2 === 0 ? "up" : "scale"}>
+            <AnimateOnScroll key={feature.title} delay={i * 100} direction={i % 2 === 0 ? "up" : "scale"}>
               <div className="feature-card group relative overflow-hidden rounded-3xl border border-gray-100 p-8 shadow-lg">
                 {/* Top accent bar */}
                 <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-blood-400 to-blood-600 opacity-0 transition-opacity group-hover:opacity-100" />

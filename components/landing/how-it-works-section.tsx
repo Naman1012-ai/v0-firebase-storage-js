@@ -69,12 +69,12 @@ export function HowItWorksSection() {
           {steps.map((step, i) => (
             <AnimateOnScroll key={step.num} delay={i * 150} direction="up">
               <div className="group relative flex flex-col items-center text-center">
-                {/* Connector line between steps (hidden on first, hidden on mobile) */}
+                {/* Connector line between steps */}
                 {i < steps.length - 1 && (
                   <div className="absolute left-[calc(50%+2.5rem)] top-10 hidden h-0.5 w-[calc(100%-5rem)] bg-gradient-to-r from-blood-400 to-blood-200 lg:block" />
                 )}
 
-                {/* Circle - clean, no background box */}
+                {/* Circle */}
                 <div className="step-circle-anim relative z-10 mb-6 flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-blood-200 text-blood-600 shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:border-blood-400 group-hover:shadow-blood-500/20">
                   {step.icon}
                 </div>

@@ -7,7 +7,7 @@ export function AboutSection() {
     <section id="about" className="relative bg-gradient-to-b from-white to-gray-50 py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid items-center gap-16 lg:grid-cols-2">
-          {/* Left */}
+          {/* Left Content */}
           <AnimateOnScroll direction="left">
             <div>
               <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-blood-50 px-5 py-2 text-sm font-semibold text-blood-600">
@@ -41,7 +41,7 @@ export function AboutSection() {
             </div>
           </AnimateOnScroll>
 
-          {/* Right - Visual */}
+          {/* Right Visual */}
           <AnimateOnScroll direction="right" delay={200}>
             <div className="relative flex items-center justify-center">
               <div className="relative z-10 grid grid-cols-2 gap-4">
