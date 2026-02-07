@@ -139,7 +139,7 @@ export function FeaturesSection() {
           </div>
           <div className="text-center">
             <div className="text-4xl font-extrabold">
-              {"<"}<AnimatedCounter target={3} />m
+              {"<"}<AnimatedCounter target={3} />{"m"}
             </div>
             <div className="mt-1 text-sm text-blood-100">Avg Response Time</div>
           </div>
