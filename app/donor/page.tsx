@@ -123,8 +123,20 @@ export default function DonorPage() {
   if (donor) {
     return (
       <main className="min-h-screen bg-gray-100">
-        <DonorNavbar isLoggedIn donorName={donor.name} bloodGroup={donor.bloodGroup} onLogout={handleLogout} />
-        <DonorDashboard donor={donor} onStatusChange={handleStatusChange} />
+        <DonorNavbar isLoggedIn donorName={donor.name} bloodGroup={donor.bloodGroup} donorId={donor.id} onLogout={handleLogout} />
+        <DonorDashboard
+          donor={donor}
+          onStatusChange={handleStatusChange}
+          onLocationUpdate={(loc) => {
+            setDonorState(prev => {
+              if (!prev) return prev
+              const next = { ...prev, location: loc }
+              saveSession(next)
+              return next
+            })
+          }}
+          onLogout={handleLogout}
+        />
         <Footer />
       </main>
     )

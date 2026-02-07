@@ -226,6 +226,59 @@ export function getStats() {
   }
 }
 
+// ---- NOTIFICATIONS (read helpers) ----
+export function getNotificationsForDonor(donorId: string): NotificationRecord[] {
+  return getCollection<NotificationRecord>("biolynk_notifications")
+    .filter(n => n.donorId === donorId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+}
+
+export function getNotificationsForHospital(hospitalId: string): NotificationRecord[] {
+  return getCollection<NotificationRecord>("biolynk_notifications")
+    .filter(n => n.hospitalId === hospitalId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+}
+
+export function markNotificationRead(id: string): void {
+  const all = getCollection<NotificationRecord>("biolynk_notifications")
+  const idx = all.findIndex(n => n.id === id)
+  if (idx !== -1) {
+    all[idx] = { ...all[idx], read: true }
+    setCollection("biolynk_notifications", all)
+    notifyChange()
+  }
+}
+
+export function markAllNotificationsRead(donorId: string): void {
+  const all = getCollection<NotificationRecord>("biolynk_notifications")
+  let changed = false
+  for (let i = 0; i < all.length; i++) {
+    if (all[i].donorId === donorId && !all[i].read) {
+      all[i] = { ...all[i], read: true }
+      changed = true
+    }
+  }
+  if (changed) {
+    setCollection("biolynk_notifications", all)
+    notifyChange()
+  }
+}
+
+// ---- REJECTED REQUESTS TRACKING ----
+export function rejectBloodRequest(requestId: string, donorId: string, donorName: string): void {
+  // Add a rejection record so the donor doesn't see this request again
+  const rejections = getCollection<{ requestId: string; donorId: string }>("biolynk_rejections")
+  rejections.push({ requestId, donorId })
+  setCollection("biolynk_rejections", rejections)
+  notifyChange()
+}
+
+export function getDonorRejections(donorId: string): string[] {
+  return getCollection<{ requestId: string; donorId: string }>("biolynk_rejections")
+    .filter(r => r.donorId === donorId)
+    .map(r => r.requestId)
+}
+
 // ---- GPS DISTANCE (Haversine) ----
 export function getDistanceKm(
   lat1: number, lng1: number,
