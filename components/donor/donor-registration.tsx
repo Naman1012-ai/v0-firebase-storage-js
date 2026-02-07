@@ -1,8 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { database } from "@/lib/firebase"
-import { ref, set, push, get, query, orderByChild, equalTo } from "firebase/database"
+import { findDonorByName, addDonor } from "@/lib/store"
 
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 const diseases = [
@@ -143,22 +142,18 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
   }
   const prevStep = () => { setError(""); setStep(prev => Math.max(prev - 1, 1)) }
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!validateStep(4)) return
     setLoading(true)
     setError("")
     try {
-      // Check if donor name already exists
-      const donorsRef = ref(database, "donors")
-      const nameQuery = query(donorsRef, orderByChild("name"), equalTo(form.name.trim()))
-      const snapshot = await get(nameQuery)
-      if (snapshot.exists()) {
+      const existing = findDonorByName(form.name.trim())
+      if (existing) {
         setError("A donor with this name already exists. Please use a different name or login.")
         setLoading(false)
         return
       }
 
-      const newDonorRef = push(donorsRef)
       const donorData = {
         name: form.name.trim(),
         bloodGroup: form.bloodGroup,
@@ -167,7 +162,7 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
         phone: form.phone,
         email: form.email,
         password: form.password,
-        location: { lat: form.lat, lng: form.lng },
+        location: { lat: form.lat!, lng: form.lng! },
         medical: form.diseases.length > 0 ? form.diseases : ["none"],
         lifestyle: { smoke: form.smoke, alcohol: form.alcohol, tattoo: form.tattoo },
         lastDonation: form.lastDonation || null,
@@ -176,8 +171,8 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
         donationCount: 0,
       }
 
-      await set(newDonorRef, donorData)
-      onRegistered({ id: newDonorRef.key, ...donorData })
+      const newDonor = addDonor(donorData)
+      onRegistered({ ...newDonor })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed. Please try again.")
     } finally {
@@ -198,7 +193,6 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
 
   const StepIndicator = () => (
     <div className="mb-8">
-      {/* Percentage bar */}
       <div className="mb-4 flex items-center justify-between">
         <span className="text-sm font-semibold text-gray-700">Registration Progress</span>
         <span className="text-sm font-bold text-blood-600">{progressPercent}%</span>
@@ -209,7 +203,6 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
           style={{ width: `${progressPercent}%` }}
         />
       </div>
-      {/* Step icons */}
       <div className="flex items-center justify-between">
         {[
           { num: 1, label: "Personal" },
@@ -250,7 +243,6 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
         </div>
       )}
 
-      {/* Step 1: Personal */}
       {step === 1 && (
         <div className="space-y-5">
           <div>
@@ -312,7 +304,6 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
         </div>
       )}
 
-      {/* Step 2: Contact & Location */}
       {step === 2 && (
         <div className="space-y-5">
           <div>
@@ -374,7 +365,6 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
         </div>
       )}
 
-      {/* Step 3: Medical */}
       {step === 3 && (
         <div className="space-y-5">
           <div>
@@ -441,7 +431,6 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
         </div>
       )}
 
-      {/* Step 4: Account */}
       {step === 4 && (
         <div className="space-y-5">
           <div>
