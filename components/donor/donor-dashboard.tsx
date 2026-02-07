@@ -8,6 +8,9 @@ import {
   addNotification,
   updateDonor,
   subscribe,
+  getDistanceKm,
+  GPS_RADIUS_KM,
+  type BloodRequestRecord,
 } from "@/lib/store"
 
 interface BloodRequest {
@@ -36,6 +39,7 @@ interface DonorData {
   name: string
   bloodGroup: string
   status: string
+  location?: { lat: number; lng: number }
   donationCount?: number
   lastDonationApproved?: string
   [key: string]: unknown
@@ -77,15 +81,27 @@ export function DonorDashboard({ donor, onStatusChange }: DonorDashboardProps) {
     checkCooldown()
   }, [checkCooldown])
 
-  // Blood requests listener
+  // Blood requests listener with 15km GPS radius filtering
   useEffect(() => {
     const refresh = () => {
       const allRequests = getBloodRequests()
-      const matching = allRequests.filter(
-        (req) =>
-          (req.bloodGroup === donor.bloodGroup || req.bloodGroup === "Any") &&
-          (req.status === "pending" || req.donorId === donor.id)
-      )
+      const matching = allRequests.filter((req: BloodRequestRecord) => {
+        // Always show requests already accepted by this donor
+        if (req.donorId === donor.id) return true
+        // Must match blood group
+        if (req.bloodGroup !== donor.bloodGroup && req.bloodGroup !== "Any") return false
+        // Must be pending
+        if (req.status !== "pending") return false
+        // GPS radius check: only show if hospital is within 15km
+        if (donor.location && req.hospitalLocation) {
+          const dist = getDistanceKm(
+            donor.location.lat, donor.location.lng,
+            req.hospitalLocation.lat, req.hospitalLocation.lng
+          )
+          if (dist > GPS_RADIUS_KM) return false
+        }
+        return true
+      })
       setRequests(
         matching.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) as BloodRequest[]
       )
@@ -93,7 +109,7 @@ export function DonorDashboard({ donor, onStatusChange }: DonorDashboardProps) {
     refresh()
     const unsub = subscribe(refresh)
     return () => unsub()
-  }, [donor.bloodGroup, donor.id])
+  }, [donor.bloodGroup, donor.id, donor.location])
 
   // Donations listener
   useEffect(() => {

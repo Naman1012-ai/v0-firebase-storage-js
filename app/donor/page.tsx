@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useCallback, useEffect, type FormEvent } from "react"
-import { findDonorByName, getDonorById } from "@/lib/store"
+import { findDonorByName } from "@/lib/store"
 import { DonorNavbar } from "@/components/donor/donor-navbar"
 import { DonorRegistration } from "@/components/donor/donor-registration"
 import { DonorDashboard } from "@/components/donor/donor-dashboard"
@@ -12,6 +12,7 @@ interface DonorData {
   name: string
   bloodGroup: string
   status: string
+  location?: { lat: number; lng: number }
   [key: string]: unknown
 }
 
@@ -20,12 +21,7 @@ function loadSession(): DonorData | null {
   try {
     const raw = sessionStorage.getItem("biolynk_donor_session")
     if (!raw) return null
-    const parsed = JSON.parse(raw) as DonorData
-    // Verify the donor still exists in the store
-    const fresh = getDonorById(parsed.id)
-    if (fresh) return { ...fresh } as DonorData
-    sessionStorage.removeItem("biolynk_donor_session")
-    return null
+    return JSON.parse(raw) as DonorData
   } catch {
     return null
   }

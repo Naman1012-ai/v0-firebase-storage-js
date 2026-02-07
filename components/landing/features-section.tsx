@@ -26,7 +26,7 @@ const features = [
     ),
     title: "GPS-Based Matching",
     description: "Our smart algorithm matches donors within optimal radius of the requesting hospital, ensuring fastest possible response times.",
-    stat: "5km",
+    stat: "15km",
     statLabel: "Smart Radius",
   },
   {
@@ -70,19 +70,10 @@ const features = [
     ),
     title: "Lives Saved Tracker",
     description: "Every donation is tracked and celebrated. Donors build a profile of impact showing exactly how many lives they have helped save.",
-    stat: "1000+",
+    stat: "DYNAMIC",
     statLabel: "Lives Impacted",
   },
 ]
-
-// Make the 6th card ("Lives Saved Tracker") and 2nd card ("GPS-Based Matching") dynamic
-function patchFeatures(livesImpacted: number): typeof features {
-  return features.map((f, i) => {
-    if (i === 1) return { ...f, stat: "15km", statLabel: "Smart Radius" }
-    if (i === 5) return { ...f, stat: livesImpacted > 0 ? `${livesImpacted}` : "0", statLabel: "Lives Impacted" }
-    return f
-  })
-}
 
 export function FeaturesSection() {
   const [donorCount, setDonorCount] = useState(0)
@@ -136,7 +127,9 @@ export function FeaturesSection() {
                 <p className="mb-6 text-sm leading-relaxed text-gray-600">{feature.description}</p>
 
                 <div className="flex items-center gap-3 border-t border-gray-100 pt-4">
-                  <span className="text-2xl font-bold text-blood-600">{feature.stat}</span>
+                  <span className="text-2xl font-bold text-blood-600">
+                    {feature.stat === "DYNAMIC" ? (livesImpacted > 0 ? `${livesImpacted}+` : "0") : feature.stat}
+                  </span>
                   <span className="text-sm text-gray-500">{feature.statLabel}</span>
                 </div>
               </div>
