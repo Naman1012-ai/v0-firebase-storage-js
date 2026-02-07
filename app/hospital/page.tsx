@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, type FormEvent } from "react"
+import React, { useState, useCallback, useEffect, type FormEvent } from "react"
 import { findHospital } from "@/lib/store"
 import Link from "next/link"
 import { HospitalRegistration } from "@/components/hospital/hospital-registration"
@@ -14,29 +14,65 @@ interface HospitalData {
   [key: string]: unknown
 }
 
+function loadHospitalSession(): HospitalData | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = sessionStorage.getItem("biolynk_hospital_session")
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as HospitalData
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function saveHospitalSession(hospital: HospitalData | null) {
+  if (typeof window === "undefined") return
+  if (hospital) {
+    sessionStorage.setItem("biolynk_hospital_session", JSON.stringify(hospital))
+  } else {
+    sessionStorage.removeItem("biolynk_hospital_session")
+  }
+}
+
 export default function HospitalPage() {
-  const [hospital, setHospital] = useState<HospitalData | null>(null)
+  const [hospital, setHospitalState] = useState<HospitalData | null>(null)
   const [view, setView] = useState<"hero" | "login" | "register">("hero")
   const [loginId, setLoginId] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
   const [loginError, setLoginError] = useState("")
   const [loginLoading, setLoginLoading] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
+
+  const setHospital = useCallback((value: HospitalData | null) => {
+    setHospitalState(value)
+    saveHospitalSession(value)
+  }, [])
+
+  // Restore session on mount
+  useEffect(() => {
+    const restored = loadHospitalSession()
+    if (restored) {
+      setHospitalState(restored)
+    }
+    setHydrated(true)
+  }, [])
 
   const handleLogin = (e: FormEvent) => {
     e.preventDefault()
     setLoginError("")
     setLoginLoading(true)
     try {
-      const hospital = findHospital(loginId.trim())
+      const found = findHospital(loginId.trim())
 
-      if (!hospital) {
+      if (!found) {
         setLoginError("No hospital found. Please check your email, name, or license number.")
         setLoginLoading(false)
         return
       }
 
-      if (hospital.password === loginPassword) {
-        setHospital(hospital as HospitalData)
+      if (found.password === loginPassword) {
+        setHospital(found as HospitalData)
       } else {
         setLoginError("Incorrect password.")
       }
@@ -50,6 +86,18 @@ export default function HospitalPage() {
   const handleLogout = () => {
     setHospital(null)
     setView("hero")
+  }
+
+  // Wait for session restore
+  if (!hydrated) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blood-200 border-t-blood-600" />
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </main>
+    )
   }
 
   // Dashboard
@@ -229,7 +277,7 @@ export default function HospitalPage() {
 
               {view === "register" && (
                 <HospitalRegistration
-                  onRegistered={(h) => setHospital(h as HospitalData)}
+                  onRegistered={(h) => { setHospital(h as HospitalData) }}
                   onSwitchToLogin={() => setView("login")}
                 />
               )}

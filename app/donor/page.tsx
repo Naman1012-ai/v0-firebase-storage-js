@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState, useCallback, type FormEvent } from "react"
-import { findDonorByName } from "@/lib/store"
+import React, { useState, useCallback, useEffect, type FormEvent } from "react"
+import { findDonorByName, getDonorById } from "@/lib/store"
 import { DonorNavbar } from "@/components/donor/donor-navbar"
 import { DonorRegistration } from "@/components/donor/donor-registration"
 import { DonorDashboard } from "@/components/donor/donor-dashboard"
@@ -15,13 +15,57 @@ interface DonorData {
   [key: string]: unknown
 }
 
+function loadSession(): DonorData | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = sessionStorage.getItem("biolynk_donor_session")
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as DonorData
+    // Verify the donor still exists in the store
+    const fresh = getDonorById(parsed.id)
+    if (fresh) return { ...fresh } as DonorData
+    sessionStorage.removeItem("biolynk_donor_session")
+    return null
+  } catch {
+    return null
+  }
+}
+
+function saveSession(donor: DonorData | null) {
+  if (typeof window === "undefined") return
+  if (donor) {
+    sessionStorage.setItem("biolynk_donor_session", JSON.stringify(donor))
+  } else {
+    sessionStorage.removeItem("biolynk_donor_session")
+  }
+}
+
 export default function DonorPage() {
-  const [donor, setDonor] = useState<DonorData | null>(null)
+  const [donor, setDonorState] = useState<DonorData | null>(null)
   const [view, setView] = useState<"register" | "login">("register")
   const [loginName, setLoginName] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
   const [loginError, setLoginError] = useState("")
   const [loginLoading, setLoginLoading] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
+
+  // Wrapper that syncs to session storage
+  const setDonor = useCallback((value: DonorData | null | ((prev: DonorData | null) => DonorData | null)) => {
+    setDonorState(prev => {
+      const next = typeof value === "function" ? value(prev) : value
+      saveSession(next)
+      return next
+    })
+  }, [])
+
+  // Restore session on mount
+  useEffect(() => {
+    const restored = loadSession()
+    if (restored) {
+      setDonorState(restored)
+    }
+    setHydrated(true)
+  }, [])
 
   const handleLogin = (e: FormEvent) => {
     e.preventDefault()
@@ -29,15 +73,15 @@ export default function DonorPage() {
     setLoginLoading(true)
 
     try {
-      const donor = findDonorByName(loginName.trim())
-      if (!donor) {
+      const found = findDonorByName(loginName.trim())
+      if (!found) {
         setLoginError("No donor found with this name. Please check your name or register.")
         setLoginLoading(false)
         return
       }
 
-      if (donor.password === loginPassword) {
-        setDonor(donor as DonorData)
+      if (found.password === loginPassword) {
+        setDonor(found as DonorData)
       } else {
         setLoginError("Incorrect password. Please try again.")
       }
@@ -60,8 +104,24 @@ export default function DonorPage() {
   }
 
   const handleStatusChange = useCallback((status: string) => {
-    setDonor(prev => prev ? { ...prev, status } : null)
+    setDonorState(prev => {
+      const next = prev ? { ...prev, status } : null
+      saveSession(next)
+      return next
+    })
   }, [])
+
+  // Wait for session restore before rendering
+  if (!hydrated) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blood-200 border-t-blood-600" />
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </main>
+    )
+  }
 
   // Dashboard view
   if (donor) {

@@ -201,10 +201,16 @@ export function addNotification(data: Omit<NotificationRecord, "id">): void {
   notifyChange()
 }
 
+// ---- ALL DONATIONS ----
+export function getAllDonations(): (DonationRecord & { donorId: string })[] {
+  return getCollection<DonationRecord & { donorId: string }>("biolynk_donations")
+}
+
 // ---- STATS ----
 export function getStats() {
   const donors = getDonors()
   const hospitals = getHospitals()
+  const totalDonations = getAllDonations().length
   const active = donors.filter(d => d.status === "active").length
   const byBlood: Record<string, number> = {}
   for (const d of donors) {
@@ -214,6 +220,8 @@ export function getStats() {
     donorCount: donors.length,
     hospitalCount: hospitals.length,
     activeDonors: active,
+    totalDonations,
+    livesImpacted: totalDonations * 3,
     byBlood,
   }
 }
@@ -228,7 +236,9 @@ export function subscribe(fn: Listener): () => void {
 }
 
 export function notifyChange(): void {
-  listeners.forEach(fn => fn())
+  queueMicrotask(() => {
+    listeners.forEach(fn => fn())
+  })
 }
 
 

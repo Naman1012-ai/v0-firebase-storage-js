@@ -78,12 +78,14 @@ const features = [
 export function FeaturesSection() {
   const [donorCount, setDonorCount] = useState(0)
   const [hospitalCount, setHospitalCount] = useState(0)
+  const [livesImpacted, setLivesImpacted] = useState(0)
 
   useEffect(() => {
     const refresh = () => {
       const stats = getStats()
       setDonorCount(stats.donorCount)
       setHospitalCount(stats.hospitalCount)
+      setLivesImpacted(stats.livesImpacted)
     }
     refresh()
     const unsub = subscribe(refresh)
@@ -149,7 +151,7 @@ export function FeaturesSection() {
           </div>
           <div className="text-center">
             <div className="text-4xl font-extrabold">
-              <AnimatedCounter target={1000} suffix="+" />
+              <AnimatedCounter target={livesImpacted} suffix="+" />
             </div>
             <div className="mt-1 text-sm text-blood-100">Lives Impacted</div>
           </div>
