@@ -75,6 +75,15 @@ const features = [
   },
 ]
 
+// Make the 6th card ("Lives Saved Tracker") and 2nd card ("GPS-Based Matching") dynamic
+function patchFeatures(livesImpacted: number): typeof features {
+  return features.map((f, i) => {
+    if (i === 1) return { ...f, stat: "15km", statLabel: "Smart Radius" }
+    if (i === 5) return { ...f, stat: livesImpacted > 0 ? `${livesImpacted}` : "0", statLabel: "Lives Impacted" }
+    return f
+  })
+}
+
 export function FeaturesSection() {
   const [donorCount, setDonorCount] = useState(0)
   const [hospitalCount, setHospitalCount] = useState(0)
