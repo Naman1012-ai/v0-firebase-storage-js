@@ -29,16 +29,24 @@ export default function HospitalPage() {
     setLoginLoading(true)
     try {
       const hospitalsRef = ref(database, "hospitals")
+      // Try email first
       const emailQuery = query(hospitalsRef, orderByChild("email"), equalTo(loginId.trim()))
       let snapshot = await get(emailQuery)
 
+      // Then try hospital name
       if (!snapshot.exists()) {
         const nameQuery = query(hospitalsRef, orderByChild("name"), equalTo(loginId.trim()))
         snapshot = await get(nameQuery)
       }
 
+      // Then try license number
       if (!snapshot.exists()) {
-        setLoginError("No hospital found. Please check your credentials.")
+        const licenseQuery = query(hospitalsRef, orderByChild("license"), equalTo(loginId.trim()))
+        snapshot = await get(licenseQuery)
+      }
+
+      if (!snapshot.exists()) {
+        setLoginError("No hospital found. Please check your email, name, or license number.")
         setLoginLoading(false)
         return
       }
@@ -143,7 +151,7 @@ export default function HospitalPage() {
           <div className="animate-float absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" style={{ animationDelay: "1s" }} />
         </div>
 
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-4">
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             {/* Left: Hero */}
             <div className="space-y-6 text-center lg:text-left">
@@ -209,14 +217,24 @@ export default function HospitalPage() {
                   </div>
                   <form onSubmit={handleLogin} className="space-y-5">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">Email / Hospital Name</label>
-                      <input type="text" value={loginId} onChange={e => setLoginId(e.target.value)} required
-                        className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 font-medium transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="Enter email or hospital name" />
+                      <label className="mb-2 block text-sm font-medium text-gray-700">Email / Hospital Name / License No.</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                        </span>
+                        <input type="text" value={loginId} onChange={e => setLoginId(e.target.value)} required
+                          className="w-full rounded-xl border-2 border-gray-200 py-3 pl-12 pr-4 font-medium transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="Email, hospital name, or license number" />
+                      </div>
                     </div>
                     <div>
                       <label className="mb-2 block text-sm font-medium text-gray-700">Password</label>
-                      <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required
-                        className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 font-medium transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="Enter password" />
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                        </span>
+                        <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required
+                          className="w-full rounded-xl border-2 border-gray-200 py-3 pl-12 pr-4 font-medium transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="Enter password" />
+                      </div>
                     </div>
                     {loginError && <div className="rounded-lg bg-red-50 p-3 text-center text-sm font-medium text-red-500">{loginError}</div>}
                     <button type="submit" disabled={loginLoading}

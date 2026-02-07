@@ -187,32 +187,55 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
 
   const today = new Date().toISOString().split("T")[0]
 
+  const stepIcons = [
+    <svg key="s1" className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
+    <svg key="s2" className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>,
+    <svg key="s3" className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>,
+    <svg key="s4" className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
+  ]
+
+  const progressPercent = Math.round(((step - 1) / 3) * 100)
+
   const StepIndicator = () => (
-    <div className="mb-8 flex items-center justify-between">
-      {[
-        { num: 1, label: "Personal" },
-        { num: 2, label: "Contact" },
-        { num: 3, label: "Medical" },
-        { num: 4, label: "Account" },
-      ].map((s, i) => (
-        <div key={s.num} className="flex items-center">
-          <div className="flex flex-col items-center">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all ${
-              step > s.num ? "bg-blood-500 text-white" : step === s.num ? "bg-blood-500 text-white" : "bg-gray-200 text-gray-500"
-            }`}>
-              {step > s.num ? (
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-              ) : s.num}
+    <div className="mb-8">
+      {/* Percentage bar */}
+      <div className="mb-4 flex items-center justify-between">
+        <span className="text-sm font-semibold text-gray-700">Registration Progress</span>
+        <span className="text-sm font-bold text-blood-600">{progressPercent}%</span>
+      </div>
+      <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-blood-400 to-blood-600 transition-all duration-500 ease-out"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+      {/* Step icons */}
+      <div className="flex items-center justify-between">
+        {[
+          { num: 1, label: "Personal" },
+          { num: 2, label: "Contact" },
+          { num: 3, label: "Medical" },
+          { num: 4, label: "Account" },
+        ].map((s, i) => (
+          <div key={s.num} className="flex items-center">
+            <div className="flex flex-col items-center">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all ${
+                step > s.num ? "bg-blood-500 text-white" : step === s.num ? "bg-blood-500 text-white shadow-lg shadow-blood-500/30" : "bg-gray-200 text-gray-500"
+              }`}>
+                {step > s.num ? (
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                ) : stepIcons[i]}
+              </div>
+              <span className={`mt-1 text-xs font-medium ${step >= s.num ? "text-gray-600" : "text-gray-400"}`}>{s.label}</span>
             </div>
-            <span className={`mt-1 text-xs font-medium ${step >= s.num ? "text-gray-600" : "text-gray-400"}`}>{s.label}</span>
+            {i < 3 && (
+              <div className="mx-2 h-1 w-8 rounded bg-gray-200 sm:w-12">
+                <div className={`h-full rounded bg-blood-500 transition-all duration-300 ${step > s.num ? "w-full" : "w-0"}`} />
+              </div>
+            )}
           </div>
-          {i < 3 && (
-            <div className="mx-2 h-1 w-8 rounded bg-gray-200 sm:w-12">
-              <div className={`h-full rounded bg-blood-500 transition-all duration-300 ${step > s.num ? "w-full" : "w-0"}`} />
-            </div>
-          )}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 
@@ -247,22 +270,37 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-2 block text-sm font-semibold text-gray-700">Age *</label>
-              <input type="number" value={form.age} onChange={e => updateField("age", e.target.value)} min={18} max={65}
-                className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 font-medium transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="Years" />
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </span>
+                <input type="number" value={form.age} onChange={e => updateField("age", e.target.value)} min={18} max={65}
+                  className="w-full rounded-xl border-2 border-gray-200 py-3 pl-12 pr-4 font-medium transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="Years" />
+              </div>
             </div>
             <div>
               <label className="mb-2 block text-sm font-semibold text-gray-700">Weight *</label>
-              <input type="number" value={form.weight} onChange={e => updateField("weight", e.target.value)} min={45}
-                className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 font-medium transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="Kg" />
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>
+                </span>
+                <input type="number" value={form.weight} onChange={e => updateField("weight", e.target.value)} min={45}
+                  className="w-full rounded-xl border-2 border-gray-200 py-3 pl-12 pr-4 font-medium transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="Kg" />
+              </div>
             </div>
           </div>
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-700">Blood Group *</label>
-            <select value={form.bloodGroup} onChange={e => updateField("bloodGroup", e.target.value)}
-              className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500">
-              <option value="">Select Blood Group</option>
-              {bloodGroups.map(bg => <option key={bg} value={bg}>{bg}</option>)}
-            </select>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.5 7 6 10.5 6 14a6 6 0 1012 0c0-3.5-2.5-7-6-12z" /></svg>
+              </span>
+              <select value={form.bloodGroup} onChange={e => updateField("bloodGroup", e.target.value)}
+                className="w-full rounded-xl border-2 border-gray-200 bg-white py-3 pl-12 pr-4 font-bold text-gray-800 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500">
+                <option value="">Select Blood Group</option>
+                {bloodGroups.map(bg => <option key={bg} value={bg}>{bg}</option>)}
+              </select>
+            </div>
           </div>
           <div className="flex justify-end pt-4">
             <button type="button" onClick={nextStep}
@@ -381,8 +419,13 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
           </div>
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-700">Last Donation</label>
-            <input type="date" value={form.lastDonation} onChange={e => updateField("lastDonation", e.target.value)} max={today}
-              className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 focus:border-blood-500 focus:ring-2 focus:ring-blood-500" />
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </span>
+              <input type="date" value={form.lastDonation} onChange={e => updateField("lastDonation", e.target.value)} max={today}
+                className="w-full rounded-xl border-2 border-gray-200 py-3 pl-12 pr-4 focus:border-blood-500 focus:ring-2 focus:ring-blood-500" />
+            </div>
             <p className="mt-1 text-xs text-gray-500">Leave empty if first time</p>
           </div>
           <div className="flex justify-between pt-4">

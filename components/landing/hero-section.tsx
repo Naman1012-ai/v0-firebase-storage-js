@@ -1,8 +1,50 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useState } from "react"
+import { database } from "@/lib/firebase"
+import { ref, onValue, get, set } from "firebase/database"
+import { AnimatedCounter } from "@/components/animated-counter"
 
 export function HeroSection() {
+  const [donorCount, setDonorCount] = useState(0)
+  const [hospitalCount, setHospitalCount] = useState(0)
+
+  useEffect(() => {
+    // Initialize stats node if it doesn't exist, then listen for real-time updates
+    const statsRef = ref(database, "stats")
+    get(statsRef).then((snapshot) => {
+      if (!snapshot.exists()) {
+        set(statsRef, { donors: 0, hospitals: 0 })
+      }
+    }).catch(() => {})
+
+    // Listen to real donor count
+    const donorsRef = ref(database, "donors")
+    const unsubDonors = onValue(donorsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setDonorCount(Object.keys(snapshot.val()).length)
+      } else {
+        setDonorCount(0)
+      }
+    })
+
+    // Listen to real hospital count
+    const hospitalsRef = ref(database, "hospitals")
+    const unsubHospitals = onValue(hospitalsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setHospitalCount(Object.keys(snapshot.val()).length)
+      } else {
+        setHospitalCount(0)
+      }
+    })
+
+    return () => {
+      unsubDonors()
+      unsubHospitals()
+    }
+  }, [])
+
   return (
     <section className="hero-bg relative flex min-h-screen items-center overflow-hidden pt-20">
       {/* Floating Particles */}
@@ -66,14 +108,18 @@ export function HeroSection() {
               </Link>
             </div>
 
-            {/* Stats */}
+            {/* Stats - connected to real DB values */}
             <div className="fade-in-up delay-4 grid grid-cols-3 gap-6">
               <div className="glass-card rounded-2xl p-4 text-center">
-                <div className="text-3xl font-bold text-blood-400 sm:text-4xl" id="stat-donors">500+</div>
+                <div className="text-3xl font-bold text-blood-400 sm:text-4xl">
+                  <AnimatedCounter target={donorCount} suffix="+" />
+                </div>
                 <div className="mt-1 text-sm text-gray-400">Active Donors</div>
               </div>
               <div className="glass-card rounded-2xl p-4 text-center">
-                <div className="text-3xl font-bold text-blood-400 sm:text-4xl" id="stat-hospitals">50+</div>
+                <div className="text-3xl font-bold text-blood-400 sm:text-4xl">
+                  <AnimatedCounter target={hospitalCount} suffix="+" />
+                </div>
                 <div className="mt-1 text-sm text-gray-400">Partner Hospitals</div>
               </div>
               <div className="glass-card rounded-2xl p-4 text-center">

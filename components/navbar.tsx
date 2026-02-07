@@ -2,9 +2,19 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useState } from "react"
+
+const navLinks = [
+  { href: "/#about", label: "About" },
+  { href: "/#features", label: "Features" },
+  { href: "/#how-it-works", label: "How It Works" },
+  { href: "/donor", label: "Donor Portal" },
+  { href: "/hospital", label: "Hospital Portal" },
+]
 
 export function Navbar() {
   const pathname = usePathname()
+  const [menuOpen, setMenuOpen] = useState(false)
 
   return (
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur-lg">
@@ -22,19 +32,8 @@ export function Navbar() {
             </div>
           </Link>
 
-          <div className="hidden items-center gap-8 md:flex">
-            <Link href="/#features" className="nav-link font-medium text-gray-700 transition-colors hover:text-blood-600">
-              Features
-            </Link>
-            <Link href="/#how-it-works" className="nav-link font-medium text-gray-700 transition-colors hover:text-blood-600">
-              How It Works
-            </Link>
-            <Link href="/#about" className="nav-link font-medium text-gray-700 transition-colors hover:text-blood-600">
-              About
-            </Link>
-          </div>
-
           <div className="flex items-center gap-3">
+            {/* CTA buttons - visible on larger screens */}
             <Link
               href="/donor"
               className={`hidden cursor-pointer items-center gap-2 rounded-xl px-5 py-2.5 font-semibold transition-all duration-300 sm:flex ${
@@ -50,13 +49,58 @@ export function Navbar() {
             </Link>
             <Link
               href="/hospital"
-              className="flex cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-blood-500 to-blood-600 px-5 py-2.5 font-semibold text-white shadow-lg transition-all duration-300 hover:from-blood-600 hover:to-blood-700 hover:shadow-blood-500/40"
+              className="hidden cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-blood-500 to-blood-600 px-5 py-2.5 font-semibold text-white shadow-lg transition-all duration-300 hover:from-blood-600 hover:to-blood-700 hover:shadow-blood-500/40 sm:flex"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
               Hospital Login
             </Link>
+
+            {/* Hamburger Menu Button */}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 transition-all hover:bg-gray-50 hover:text-blood-600"
+              aria-label="Toggle navigation menu"
+              aria-expanded={menuOpen}
+            >
+              <svg
+                className={`h-5 w-5 transition-transform duration-300 ${menuOpen ? "rotate-90" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                {menuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Dropdown Menu */}
+      <div
+        className={`overflow-hidden border-t border-gray-100 bg-white/98 shadow-lg backdrop-blur-lg transition-all duration-300 ${
+          menuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition-all hover:bg-blood-50 hover:text-blood-600 ${
+                  pathname === link.href ? "bg-blood-50 text-blood-600" : "text-gray-700"
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>

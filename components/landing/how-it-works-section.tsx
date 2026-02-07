@@ -1,10 +1,11 @@
 import Link from "next/link"
+import { AnimateOnScroll } from "@/components/animate-on-scroll"
 
 const steps = [
   {
     num: 1,
     title: "Register",
-    description: "Sign up as a donor or hospital with verified credentials. Our multi-step process ensures data accuracy.",
+    description: "Sign up as a donor or hospital with verified credentials.",
     icon: (
       <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -14,7 +15,7 @@ const steps = [
   {
     num: 2,
     title: "Get Verified",
-    description: "Our team verifies all registrations to ensure safety and authenticity for both donors and hospitals.",
+    description: "Our team verifies all registrations to ensure safety and authenticity.",
     icon: (
       <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -24,7 +25,7 @@ const steps = [
   {
     num: 3,
     title: "Emergency Alert",
-    description: "When blood is needed, hospitals create an emergency request. Matching donors are instantly notified.",
+    description: "Hospitals create a blood request. Matching donors are notified instantly.",
     icon: (
       <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -34,7 +35,7 @@ const steps = [
   {
     num: 4,
     title: "Save a Life",
-    description: "Donors respond, visit the hospital, and donate. Every drop counts in saving someone's life.",
+    description: "Donors respond, visit the hospital, and donate. Every drop counts.",
     icon: (
       <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -63,36 +64,30 @@ export function HowItWorksSection() {
           </p>
         </div>
 
-        {/* Steps */}
-        <div className="relative">
-          {/* Connecting line */}
-          <div className="absolute left-1/2 top-0 hidden h-full w-0.5 -translate-x-1/2 bg-gradient-to-b from-blood-200 via-blood-400 to-blood-200 lg:block" />
+        {/* Horizontal Steps */}
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step, i) => (
+            <AnimateOnScroll key={step.num} delay={i * 150} direction="up">
+              <div className="group relative flex flex-col items-center text-center">
+                {/* Connector line between steps (hidden on first, hidden on mobile) */}
+                {i < steps.length - 1 && (
+                  <div className="absolute left-[calc(50%+2.5rem)] top-10 hidden h-0.5 w-[calc(100%-5rem)] bg-gradient-to-r from-blood-400 to-blood-200 lg:block" />
+                )}
 
-          <div className="grid gap-16 lg:gap-24">
-            {steps.map((step, i) => (
-              <div
-                key={step.num}
-                className={`flex flex-col items-center gap-10 lg:flex-row ${i % 2 !== 0 ? "lg:flex-row-reverse" : ""}`}
-              >
-                {/* Content */}
-                <div className={`flex-1 text-center ${i % 2 !== 0 ? "lg:text-left" : "lg:text-right"}`}>
-                  <span className="mb-2 inline-block text-sm font-bold uppercase tracking-wider text-blood-400">
-                    Step {step.num}
-                  </span>
-                  <h3 className="mb-4 text-3xl font-bold text-gray-900">{step.title}</h3>
-                  <p className="text-lg leading-relaxed text-gray-600">{step.description}</p>
-                </div>
-
-                {/* Circle */}
-                <div className="step-circle-anim flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blood-500 to-blood-700 shadow-xl shadow-blood-500/30">
+                {/* Circle - clean, no background box */}
+                <div className="step-circle-anim relative z-10 mb-6 flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-blood-200 text-blood-600 shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:border-blood-400 group-hover:shadow-blood-500/20">
                   {step.icon}
                 </div>
 
-                {/* Spacer */}
-                <div className="hidden flex-1 lg:block" />
+                {/* Step label */}
+                <span className="mb-2 text-sm font-bold uppercase tracking-wider text-blood-400">
+                  Step {step.num}
+                </span>
+                <h3 className="mb-3 text-xl font-bold text-gray-900">{step.title}</h3>
+                <p className="text-sm leading-relaxed text-gray-600">{step.description}</p>
               </div>
-            ))}
-          </div>
+            </AnimateOnScroll>
+          ))}
         </div>
 
         {/* CTA */}

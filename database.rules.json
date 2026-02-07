@@ -1,0 +1,44 @@
+{
+  "rules": {
+    "donors": {
+      ".read": true,
+      ".write": true,
+      ".indexOn": ["name", "bloodGroup", "status", "email", "phone"],
+      "$donorId": {
+        ".read": true,
+        ".write": true
+      }
+    },
+    "hospitals": {
+      ".read": true,
+      ".write": true,
+      ".indexOn": ["name", "email", "license", "status"],
+      "$hospitalId": {
+        ".read": true,
+        ".write": true
+      }
+    },
+    "bloodRequests": {
+      ".read": true,
+      ".write": true,
+      ".indexOn": ["hospitalId", "bloodGroup", "status", "createdAt"],
+      "$requestId": {
+        ".read": true,
+        ".write": true
+      }
+    },
+    "stats": {
+      ".read": true,
+      ".write": true
+    },
+    "notifications": {
+      ".read": true,
+      ".write": true,
+      ".indexOn": ["donorId", "hospitalId", "createdAt"],
+      "$notificationId": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}

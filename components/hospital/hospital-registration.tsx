@@ -116,27 +116,46 @@ export function HospitalRegistration({ onRegistered, onSwitchToLogin }: Hospital
 
   return (
     <div className="rounded-3xl border border-gray-100/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl">
-      {/* Progress */}
-      <div className="mb-8 flex items-center justify-between">
-        {steps.map((s, i) => (
-          <div key={s.num} className="flex items-center">
-            <div className="flex flex-col items-center">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all ${
-                step > s.num ? "bg-blood-500 text-white" : step === s.num ? "bg-blood-500 text-white" : "bg-gray-200 text-gray-500"
-              }`}>
-                {step > s.num ? (
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                ) : s.num}
+      {/* Progress with percentage */}
+      <div className="mb-8">
+        <div className="mb-4 flex items-center justify-between">
+          <span className="text-sm font-semibold text-gray-700">Registration Progress</span>
+          <span className="text-sm font-bold text-blood-600">{Math.round(((step - 1) / 3) * 100)}%</span>
+        </div>
+        <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-blood-400 to-blood-600 transition-all duration-500 ease-out"
+            style={{ width: `${Math.round(((step - 1) / 3) * 100)}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          {steps.map((s, i) => (
+            <div key={s.num} className="flex items-center">
+              <div className="flex flex-col items-center">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all ${
+                  step > s.num ? "bg-blood-500 text-white" : step === s.num ? "bg-blood-500 text-white shadow-lg shadow-blood-500/30" : "bg-gray-200 text-gray-500"
+                }`}>
+                  {step > s.num ? (
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  ) : (
+                    [
+                      <svg key="h1" className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>,
+                      <svg key="h2" className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>,
+                      <svg key="h3" className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+                      <svg key="h4" className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
+                    ][i]
+                  )}
+                </div>
+                <span className={`mt-1 text-xs font-medium ${step >= s.num ? "text-gray-600" : "text-gray-400"}`}>{s.label}</span>
               </div>
-              <span className={`mt-1 text-xs font-medium ${step >= s.num ? "text-gray-600" : "text-gray-400"}`}>{s.label}</span>
+              {i < 3 && (
+                <div className="mx-2 h-1 w-8 rounded bg-gray-200 sm:w-12">
+                  <div className={`h-full rounded bg-blood-500 transition-all duration-300 ${step > s.num ? "w-full" : "w-0"}`} />
+                </div>
+              )}
             </div>
-            {i < 3 && (
-              <div className="mx-2 h-1 w-8 rounded bg-gray-200 sm:w-12">
-                <div className={`h-full rounded bg-blood-500 transition-all duration-300 ${step > s.num ? "w-full" : "w-0"}`} />
-              </div>
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {error && (
@@ -156,19 +175,34 @@ export function HospitalRegistration({ onRegistered, onSwitchToLogin }: Hospital
             <div className="space-y-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-600">Hospital Name *</label>
-                <input type="text" value={form.name} onChange={e => updateField("name", e.target.value)}
-                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500/20" placeholder="City General Hospital" />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                  </span>
+                  <input type="text" value={form.name} onChange={e => updateField("name", e.target.value)}
+                    className="w-full rounded-xl border-2 border-gray-200 py-2.5 pl-10 pr-4 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500/20" placeholder="City General Hospital" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600">License No. *</label>
-                  <input type="text" value={form.license} onChange={e => updateField("license", e.target.value)}
-                    className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500/20" placeholder="LIC-12345" />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                    </span>
+                    <input type="text" value={form.license} onChange={e => updateField("license", e.target.value)}
+                      className="w-full rounded-xl border-2 border-gray-200 py-2.5 pl-10 pr-4 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500/20" placeholder="LIC-12345" />
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600">Establishment Year</label>
-                  <input type="number" value={form.establishment} onChange={e => updateField("establishment", e.target.value)}
-                    className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500/20" placeholder="1990" min={1800} max={2026} />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    </span>
+                    <input type="number" value={form.establishment} onChange={e => updateField("establishment", e.target.value)}
+                      className="w-full rounded-xl border-2 border-gray-200 py-2.5 pl-10 pr-4 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500/20" placeholder="1990" min={1800} max={2026} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -194,18 +228,33 @@ export function HospitalRegistration({ onRegistered, onSwitchToLogin }: Hospital
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-600">Email *</label>
-                <input type="email" value={form.email} onChange={e => updateField("email", e.target.value)}
-                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500/20" placeholder="hospital@example.com" />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" /></svg>
+                  </span>
+                  <input type="email" value={form.email} onChange={e => updateField("email", e.target.value)}
+                    className="w-full rounded-xl border-2 border-gray-200 py-2.5 pl-10 pr-4 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500/20" placeholder="hospital@example.com" />
+                </div>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-600">Contact No. *</label>
-                <input type="tel" value={form.contact} onChange={e => updateField("contact", e.target.value)}
-                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500/20" placeholder="+91 98765 43210" />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                  </span>
+                  <input type="tel" value={form.contact} onChange={e => updateField("contact", e.target.value)}
+                    className="w-full rounded-xl border-2 border-gray-200 py-2.5 pl-10 pr-4 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500/20" placeholder="+91 98765 43210" />
+                </div>
               </div>
               <div className="col-span-2">
                 <label className="mb-1 block text-xs font-medium text-gray-600">Emergency Hotline (24/7)</label>
-                <input type="tel" value={form.emergencyHotline} onChange={e => updateField("emergencyHotline", e.target.value)}
-                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500/20" placeholder="+91 1800-XXX-XXXX" />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                  </span>
+                  <input type="tel" value={form.emergencyHotline} onChange={e => updateField("emergencyHotline", e.target.value)}
+                    className="w-full rounded-xl border-2 border-gray-200 py-2.5 pl-10 pr-4 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500/20" placeholder="+91 1800-XXX-XXXX" />
+                </div>
               </div>
             </div>
           </div>
@@ -266,8 +315,13 @@ export function HospitalRegistration({ onRegistered, onSwitchToLogin }: Hospital
           </div>
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-700">Password *</label>
-            <input type="password" value={form.password} onChange={e => updateField("password", e.target.value)}
-              className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="Min 6 characters" />
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              </span>
+              <input type="password" value={form.password} onChange={e => updateField("password", e.target.value)}
+                className="w-full rounded-xl border-2 border-gray-200 py-3 pl-12 pr-4 focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="Min 6 characters" />
+            </div>
           </div>
           {/* Review Summary */}
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">

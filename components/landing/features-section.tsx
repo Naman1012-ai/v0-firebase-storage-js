@@ -1,6 +1,10 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { database } from "@/lib/firebase"
+import { ref, onValue } from "firebase/database"
 import { AnimatedCounter } from "@/components/animated-counter"
+import { AnimateOnScroll } from "@/components/animate-on-scroll"
 
 const features = [
   {
@@ -73,6 +77,30 @@ const features = [
 ]
 
 export function FeaturesSection() {
+  const [donorCount, setDonorCount] = useState(0)
+  const [hospitalCount, setHospitalCount] = useState(0)
+
+  useEffect(() => {
+    const donorsRef = ref(database, "donors")
+    const unsubDonors = onValue(donorsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setDonorCount(Object.keys(snapshot.val()).length)
+      }
+    })
+
+    const hospitalsRef = ref(database, "hospitals")
+    const unsubHospitals = onValue(hospitalsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setHospitalCount(Object.keys(snapshot.val()).length)
+      }
+    })
+
+    return () => {
+      unsubDonors()
+      unsubHospitals()
+    }
+  }, [])
+
   return (
     <section id="features" className="relative bg-gradient-to-b from-gray-50 to-white py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -95,25 +123,24 @@ export function FeaturesSection() {
         {/* Feature Cards Grid */}
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, i) => (
-            <div
-              key={i}
-              className="feature-card group relative overflow-hidden rounded-3xl border border-gray-100 p-8 shadow-lg"
-            >
-              {/* Top accent bar */}
-              <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-blood-400 to-blood-600 opacity-0 transition-opacity group-hover:opacity-100" />
+            <AnimateOnScroll key={i} delay={i * 100} direction={i % 2 === 0 ? "up" : "scale"}>
+              <div className="feature-card group relative overflow-hidden rounded-3xl border border-gray-100 p-8 shadow-lg">
+                {/* Top accent bar */}
+                <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-blood-400 to-blood-600 opacity-0 transition-opacity group-hover:opacity-100" />
 
-              <div className="feature-icon mb-6 inline-flex items-center justify-center rounded-2xl bg-blood-50 p-4 text-blood-600">
-                {feature.icon}
+                <div className="mb-6 inline-flex text-blood-600 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                  {feature.icon}
+                </div>
+
+                <h3 className="mb-3 text-xl font-bold text-gray-900">{feature.title}</h3>
+                <p className="mb-6 text-sm leading-relaxed text-gray-600">{feature.description}</p>
+
+                <div className="flex items-center gap-3 border-t border-gray-100 pt-4">
+                  <span className="text-2xl font-bold text-blood-600">{feature.stat}</span>
+                  <span className="text-sm text-gray-500">{feature.statLabel}</span>
+                </div>
               </div>
-
-              <h3 className="mb-3 text-xl font-bold text-gray-900">{feature.title}</h3>
-              <p className="mb-6 text-sm leading-relaxed text-gray-600">{feature.description}</p>
-
-              <div className="flex items-center gap-3 border-t border-gray-100 pt-4">
-                <span className="text-2xl font-bold text-blood-600">{feature.stat}</span>
-                <span className="text-sm text-gray-500">{feature.statLabel}</span>
-              </div>
-            </div>
+            </AnimateOnScroll>
           ))}
         </div>
 
@@ -121,13 +148,13 @@ export function FeaturesSection() {
         <div className="mt-20 grid grid-cols-2 gap-8 rounded-3xl bg-gradient-to-r from-blood-600 to-blood-700 p-10 text-white shadow-2xl shadow-blood-500/20 md:grid-cols-4">
           <div className="text-center">
             <div className="text-4xl font-extrabold">
-              <AnimatedCounter target={500} suffix="+" />
+              <AnimatedCounter target={donorCount} suffix="+" />
             </div>
             <div className="mt-1 text-sm text-blood-100">Registered Donors</div>
           </div>
           <div className="text-center">
             <div className="text-4xl font-extrabold">
-              <AnimatedCounter target={50} suffix="+" />
+              <AnimatedCounter target={hospitalCount} suffix="+" />
             </div>
             <div className="mt-1 text-sm text-blood-100">Partner Hospitals</div>
           </div>
