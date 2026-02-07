@@ -14,6 +14,7 @@ import {
   getDonorRejections,
   getNotificationsForDonor,
   markAllNotificationsRead,
+  getDonorById,
   type BloodRequestRecord,
   type NotificationRecord,
 } from "@/lib/store"
@@ -56,11 +57,12 @@ interface DonorDashboardProps {
   onStatusChange: (status: string) => void
   onLocationUpdate?: (loc: { lat: number; lng: number }) => void
   onLogout: () => void
+  onProfileUpdate?: (updates: Partial<DonorData>) => void
 }
 
 const GOOGLE_MAPS_KEY = "AIzaSyDOeHp6xcsp8Eblz0R9N8nA9xW5fYFhgr8"
 
-export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogout }: DonorDashboardProps) {
+export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogout, onProfileUpdate }: DonorDashboardProps) {
   const [requests, setRequests] = useState<BloodRequest[]>([])
   const [donations, setDonations] = useState<Donation[]>([])
   const [notifications, setNotifications] = useState<NotificationRecord[]>([])
@@ -73,6 +75,18 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
   const watchIdRef = useRef<number | null>(null)
   const onLocationUpdateRef = useRef(onLocationUpdate)
   const [mapError, setMapError] = useState(false)
+
+  // Edit Profile state
+  const [showEditProfile, setShowEditProfile] = useState(false)
+  const [editForm, setEditForm] = useState({
+    name: donor.name,
+    phone: (donor.phone as string) || "",
+    email: (donor.email as string) || "",
+    age: (donor.age as number)?.toString() || "",
+    weight: (donor.weight as number)?.toString() || "",
+  })
+  const [editError, setEditError] = useState("")
+  const [editSaving, setEditSaving] = useState(false)
 
   // Keep ref in sync without triggering effects
   useEffect(() => {
@@ -287,6 +301,47 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
     }
   }
 
+  const handleSaveProfile = () => {
+    setEditError("")
+    if (!editForm.name.trim()) {
+      setEditError("Name is required.")
+      return
+    }
+    if (!editForm.phone || !/^[0-9]{10}$/.test(editForm.phone)) {
+      setEditError("Phone must be a valid 10-digit number.")
+      return
+    }
+    if (!editForm.email) {
+      setEditError("Email is required.")
+      return
+    }
+    if (editForm.age && (Number(editForm.age) < 18 || Number(editForm.age) > 65)) {
+      setEditError("Age must be between 18 and 65.")
+      return
+    }
+    if (editForm.weight && Number(editForm.weight) < 45) {
+      setEditError("Minimum weight is 45 kg.")
+      return
+    }
+    setEditSaving(true)
+    try {
+      const updates: Partial<DonorData> = {
+        name: editForm.name.trim(),
+        phone: editForm.phone,
+        email: editForm.email,
+        age: editForm.age ? Number(editForm.age) : undefined,
+        weight: editForm.weight ? Number(editForm.weight) : undefined,
+      }
+      updateDonor(donor.id, updates)
+      onProfileUpdate?.(updates)
+      setShowEditProfile(false)
+    } catch {
+      setEditError("Failed to save profile.")
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
   const getUrgencyColor = (urgency: string) => {
     switch (urgency?.toLowerCase()) {
       case "critical": return "bg-red-100 text-red-700 border-red-200"
@@ -370,7 +425,7 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
               </div>
             </div>
 
-            {/* Controls: Active/Inactive toggle + Logout */}
+            {/* Controls: Active/Inactive toggle + Edit Profile */}
             <div className="flex flex-col items-end gap-2">
               <button
                 onClick={toggleActiveStatus}
@@ -407,13 +462,26 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
                 )}
               </button>
               <button
-                onClick={onLogout}
-                className="flex items-center gap-2 rounded-xl bg-gray-100 px-5 py-2.5 font-semibold text-gray-700 transition-all hover:bg-red-50 hover:text-red-600"
+                onClick={() => {
+                  const current = getDonorById(donor.id)
+                  if (current) {
+                    setEditForm({
+                      name: current.name,
+                      phone: current.phone || "",
+                      email: current.email || "",
+                      age: current.age?.toString() || "",
+                      weight: current.weight?.toString() || "",
+                    })
+                  }
+                  setEditError("")
+                  setShowEditProfile(true)
+                }}
+                className="flex items-center gap-2 rounded-xl bg-blue-50 px-5 py-2.5 font-semibold text-blue-700 transition-all hover:bg-blue-100"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                Logout
+                Edit Profile
               </button>
             </div>
           </div>
@@ -760,6 +828,98 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
           </div>
         )}
       </div>
+
+      {/* Edit Profile Modal */}
+      {showEditProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-900">Edit Profile</h3>
+              <button
+                onClick={() => setShowEditProfile(false)}
+                className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Close edit profile"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {editError && (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">{editError}</div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-gray-700">Full Name</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-gray-700">Age</label>
+                  <input
+                    type="number"
+                    value={editForm.age}
+                    onChange={e => setEditForm(prev => ({ ...prev, age: e.target.value }))}
+                    min={18}
+                    max={65}
+                    className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-gray-700">Weight (kg)</label>
+                  <input
+                    type="number"
+                    value={editForm.weight}
+                    onChange={e => setEditForm(prev => ({ ...prev, weight: e.target.value }))}
+                    min={45}
+                    className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-gray-700">Phone</label>
+                <input
+                  type="tel"
+                  value={editForm.phone}
+                  onChange={e => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-gray-700">Email</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowEditProfile(false)}
+                  className="flex-1 rounded-xl border-2 border-gray-200 bg-white py-3 font-semibold text-gray-700 transition-all hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={editSaving}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-blood-500 to-blood-600 py-3 font-semibold text-white shadow-lg transition-all hover:from-blood-600 hover:to-blood-700 disabled:opacity-60"
+                >
+                  {editSaving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

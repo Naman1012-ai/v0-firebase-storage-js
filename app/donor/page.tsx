@@ -99,6 +99,13 @@ export default function DonorPage() {
     setDonor(newDonor as DonorData)
   }
 
+  const handleProfileUpdate = useCallback((updates: Partial<DonorData>) => {
+    setDonor(prev => {
+      if (!prev) return prev
+      return { ...prev, ...updates }
+    })
+  }, [setDonor])
+
   const handleLocationUpdate = useCallback((loc: { lat: number; lng: number }) => {
     setDonorState(prev => {
       if (!prev) return prev
@@ -138,6 +145,7 @@ export default function DonorPage() {
           onStatusChange={handleStatusChange}
           onLocationUpdate={handleLocationUpdate}
           onLogout={handleLogout}
+          onProfileUpdate={handleProfileUpdate}
         />
         <Footer />
       </main>

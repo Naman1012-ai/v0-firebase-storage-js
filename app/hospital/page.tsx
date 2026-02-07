@@ -283,14 +283,15 @@ export default function HospitalPage() {
               )}
 
               {view === "hero" && (
-                <div className="rounded-3xl border border-gray-100/50 bg-white/60 p-8 text-center shadow-xl backdrop-blur-xl">
-                  <div className="mx-auto mb-4 flex h-20 w-20 animate-float items-center justify-center rounded-2xl bg-gradient-to-br from-blood-100 to-blood-200 shadow-lg">
-                    <svg className="h-10 w-10 text-blood-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
+                <div className="flex items-center justify-center rounded-3xl border border-gray-100/50 bg-white/60 p-8 text-center shadow-xl backdrop-blur-xl">
+                  <div>
+                    <div className="mx-auto mb-4 flex h-20 w-20 animate-float items-center justify-center rounded-2xl bg-gradient-to-br from-blood-100 to-blood-200 shadow-lg">
+                      <svg className="h-10 w-10 text-blood-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900">Hospital Portal</h3>
                   </div>
-                  <h3 className="mb-2 text-2xl font-bold text-gray-900">Hospital Portal</h3>
-                  <p className="text-gray-500">Login or register to access the emergency blood coordination dashboard.</p>
                 </div>
               )}
             </div>

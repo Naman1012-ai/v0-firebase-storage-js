@@ -12,6 +12,7 @@ import {
   addNotification,
   subscribe,
 } from "@/lib/store"
+import { DonorMap } from "@/components/hospital/donor-map"
 
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
