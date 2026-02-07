@@ -1,8 +1,6 @@
 "use client"
 
-import React from "react"
-
-import { useState } from "react"
+import React, { useState, type FormEvent } from "react"
 import { database } from "@/lib/firebase"
 import { ref, get, query, orderByChild, equalTo } from "firebase/database"
 import Link from "next/link"
@@ -25,7 +23,7 @@ export default function HospitalPage() {
   const [loginError, setLoginError] = useState("")
   const [loginLoading, setLoginLoading] = useState(false)
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
     setLoginError("")
     setLoginLoading(true)

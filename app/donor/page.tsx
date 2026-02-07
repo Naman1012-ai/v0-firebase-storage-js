@@ -1,8 +1,6 @@
 "use client"
 
-import React from "react"
-
-import { useState, useCallback } from "react"
+import React, { useState, useCallback, type FormEvent } from "react"
 import { database } from "@/lib/firebase"
 import { ref, get, query, orderByChild, equalTo } from "firebase/database"
 import { DonorNavbar } from "@/components/donor/donor-navbar"
@@ -26,7 +24,7 @@ export default function DonorPage() {
   const [loginError, setLoginError] = useState("")
   const [loginLoading, setLoginLoading] = useState(false)
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
     setLoginError("")
     setLoginLoading(true)

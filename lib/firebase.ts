@@ -1,6 +1,5 @@
-import { initializeApp, getApps } from "firebase/app"
-import { getDatabase } from "firebase/database"
-import { getAuth } from "firebase/auth"
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app"
+import { getDatabase, type Database } from "firebase/database"
 
 const firebaseConfig = {
   apiKey: "AIzaSyD7sy6fRvdOfiQ0kkk4qgqMLSr2o1NXpcA",
@@ -13,8 +12,16 @@ const firebaseConfig = {
   measurementId: "G-EL6HVCWNQN",
 }
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
-const database = getDatabase(app)
-const auth = getAuth(app)
+let app: FirebaseApp
+let database: Database
 
-export { app, database, auth }
+try {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+  database = getDatabase(app)
+} catch (error) {
+  console.error("[v0] Firebase initialization failed:", error)
+  app = null as unknown as FirebaseApp
+  database = null as unknown as Database
+}
+
+export { app, database }
