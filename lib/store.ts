@@ -231,21 +231,4 @@ export function notifyChange(): void {
   listeners.forEach(fn => fn())
 }
 
-// Wrap write operations to auto-notify
-const originalAddDonor = addDonor
-const originalUpdateDonor = updateDonor
-const originalAddHospital = addHospital
-const originalAddBloodRequest = addBloodRequest
-const originalUpdateBloodRequest = updateBloodRequest
-const originalAddDonorDonation = addDonorDonation
-const originalAddNotification = addNotification
 
-export {
-  originalAddDonor as addDonorAndNotify,
-  originalUpdateDonor as updateDonorAndNotify,
-  originalAddHospital as addHospitalAndNotify,
-  originalAddBloodRequest as addBloodRequestAndNotify,
-  originalUpdateBloodRequest as updateBloodRequestAndNotify,
-  originalAddDonorDonation as addDonorDonationAndNotify,
-  originalAddNotification as addNotificationAndNotify,
-}

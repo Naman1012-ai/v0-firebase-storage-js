@@ -1,8 +1,7 @@
 "use client"
 
 import React, { useState, type FormEvent } from "react"
-import { database } from "@/lib/firebase"
-import { ref, get, query, orderByChild, equalTo } from "firebase/database"
+import { findHospital } from "@/lib/store"
 import Link from "next/link"
 import { HospitalRegistration } from "@/components/hospital/hospital-registration"
 import { HospitalDashboard } from "@/components/hospital/hospital-dashboard"
@@ -23,44 +22,24 @@ export default function HospitalPage() {
   const [loginError, setLoginError] = useState("")
   const [loginLoading, setLoginLoading] = useState(false)
 
-  const handleLogin = async (e: FormEvent) => {
+  const handleLogin = (e: FormEvent) => {
     e.preventDefault()
     setLoginError("")
     setLoginLoading(true)
     try {
-      const hospitalsRef = ref(database, "hospitals")
-      // Try email first
-      const emailQuery = query(hospitalsRef, orderByChild("email"), equalTo(loginId.trim()))
-      let snapshot = await get(emailQuery)
+      const hospital = findHospital(loginId.trim())
 
-      // Then try hospital name
-      if (!snapshot.exists()) {
-        const nameQuery = query(hospitalsRef, orderByChild("name"), equalTo(loginId.trim()))
-        snapshot = await get(nameQuery)
-      }
-
-      // Then try license number
-      if (!snapshot.exists()) {
-        const licenseQuery = query(hospitalsRef, orderByChild("license"), equalTo(loginId.trim()))
-        snapshot = await get(licenseQuery)
-      }
-
-      if (!snapshot.exists()) {
+      if (!hospital) {
         setLoginError("No hospital found. Please check your email, name, or license number.")
         setLoginLoading(false)
         return
       }
 
-      let found = false
-      snapshot.forEach((child) => {
-        const data = child.val()
-        if (data.password === loginPassword) {
-          setHospital({ id: child.key!, ...data })
-          found = true
-        }
-      })
-
-      if (!found) setLoginError("Incorrect password.")
+      if (hospital.password === loginPassword) {
+        setHospital(hospital as HospitalData)
+      } else {
+        setLoginError("Incorrect password.")
+      }
     } catch {
       setLoginError("Login failed.")
     } finally {

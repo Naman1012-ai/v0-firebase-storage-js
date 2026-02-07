@@ -1,8 +1,7 @@
 "use client"
 
 import React, { useState, useCallback, type FormEvent } from "react"
-import { database } from "@/lib/firebase"
-import { ref, get, query, orderByChild, equalTo } from "firebase/database"
+import { findDonorByName } from "@/lib/store"
 import { DonorNavbar } from "@/components/donor/donor-navbar"
 import { DonorRegistration } from "@/components/donor/donor-registration"
 import { DonorDashboard } from "@/components/donor/donor-dashboard"
@@ -24,32 +23,22 @@ export default function DonorPage() {
   const [loginError, setLoginError] = useState("")
   const [loginLoading, setLoginLoading] = useState(false)
 
-  const handleLogin = async (e: FormEvent) => {
+  const handleLogin = (e: FormEvent) => {
     e.preventDefault()
     setLoginError("")
     setLoginLoading(true)
 
     try {
-      const donorsRef = ref(database, "donors")
-      const nameQuery = query(donorsRef, orderByChild("name"), equalTo(loginName.trim()))
-      const snapshot = await get(nameQuery)
-
-      if (!snapshot.exists()) {
+      const donor = findDonorByName(loginName.trim())
+      if (!donor) {
         setLoginError("No donor found with this name. Please check your name or register.")
         setLoginLoading(false)
         return
       }
 
-      let found = false
-      snapshot.forEach((child) => {
-        const data = child.val()
-        if (data.password === loginPassword) {
-          setDonor({ id: child.key!, ...data })
-          found = true
-        }
-      })
-
-      if (!found) {
+      if (donor.password === loginPassword) {
+        setDonor(donor as DonorData)
+      } else {
         setLoginError("Incorrect password. Please try again.")
       }
     } catch {

@@ -81,11 +81,10 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
     return () => unsub()
   }, [])
 
-  const sendRequest = async () => {
+  const sendRequest = () => {
     setSending(true)
     try {
-      const newReqRef = push(ref(database, "bloodRequests"))
-      await set(newReqRef, {
+      addBloodRequest({
         hospitalId: hospital.id,
         hospitalName: hospital.name,
         hospitalLocation: hospital.location,
@@ -104,7 +103,7 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
     }
   }
 
-  const approveDonation = async (request: BloodRequest) => {
+  const approveDonation = (request: BloodRequest) => {
     if (!request.donorId) return
     try {
       // Generate donation number
@@ -115,7 +114,7 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
       const donationNumber = `DON-${dateStr}-${bgCode}-${rand}`
 
       // Update request
-      await update(ref(database, `bloodRequests/${request.id}`), {
+      updateBloodRequest(request.id, {
         status: "completed",
         donationApproved: true,
         donationNumber,
@@ -123,8 +122,7 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
       })
 
       // Create donation record for donor
-      const donationRef = push(ref(database, `donorDonations/${request.donorId}`))
-      await set(donationRef, {
+      addDonorDonation(request.donorId, {
         donationNumber,
         hospitalName: hospital.name,
         hospitalId: hospital.id,
@@ -135,11 +133,9 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
       })
 
       // Update donor status to inactive (60-day cooldown)
-      const donorRef = ref(database, `donors/${request.donorId}`)
-      const donorSnap = await get(donorRef)
-      if (donorSnap.exists()) {
-        const donorData = donorSnap.val()
-        await update(donorRef, {
+      const donorData = getDonorById(request.donorId)
+      if (donorData) {
+        updateDonor(request.donorId, {
           status: "inactive",
           lastDonationApproved: new Date().toISOString(),
           donationCount: (donorData.donationCount || 0) + 1,
@@ -147,8 +143,7 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
       }
 
       // Create notification for donor
-      const notifRef = push(ref(database, "notifications"))
-      await set(notifRef, {
+      addNotification({
         type: "donation_approved",
         donorId: request.donorId,
         hospitalName: hospital.name,

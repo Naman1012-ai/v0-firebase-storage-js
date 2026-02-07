@@ -1,8 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { database } from "@/lib/firebase"
-import { ref, set, push, get, query, orderByChild, equalTo } from "firebase/database"
+import { getHospitals, addHospital } from "@/lib/store"
 
 interface HospitalFormData {
   name: string
@@ -75,17 +74,18 @@ export function HospitalRegistration({ onRegistered, onSwitchToLogin }: Hospital
   const nextStep = () => { if (validateStep(step)) { setError(""); setStep(prev => Math.min(prev + 1, 4)) } }
   const prevStep = () => { setError(""); setStep(prev => Math.max(prev - 1, 1)) }
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!validateStep(4)) return
     setLoading(true)
     setError("")
     try {
-      const hospitalsRef = ref(database, "hospitals")
-      const nameQuery = query(hospitalsRef, orderByChild("name"), equalTo(form.name.trim()))
-      const snapshot = await get(nameQuery)
-      if (snapshot.exists()) { setError("A hospital with this name already exists."); setLoading(false); return }
+      const existing = getHospitals()
+      if (existing.some(h => h.name.toLowerCase() === form.name.trim().toLowerCase())) {
+        setError("A hospital with this name already exists.")
+        setLoading(false)
+        return
+      }
 
-      const newRef = push(hospitalsRef)
       const hospitalData = {
         name: form.name.trim(),
         license: form.license,
@@ -93,13 +93,13 @@ export function HospitalRegistration({ onRegistered, onSwitchToLogin }: Hospital
         email: form.email,
         contact: form.contact,
         emergencyHotline: form.emergencyHotline || null,
-        location: { lat: form.lat, lng: form.lng },
+        location: { lat: form.lat!, lng: form.lng! },
         password: form.password,
         status: "active",
         registeredAt: new Date().toISOString(),
       }
-      await set(newRef, hospitalData)
-      onRegistered({ id: newRef.key, ...hospitalData })
+      const newHospital = addHospital(hospitalData)
+      onRegistered({ id: newHospital.id, ...hospitalData })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed.")
     } finally {
