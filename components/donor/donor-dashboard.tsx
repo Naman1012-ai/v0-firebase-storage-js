@@ -71,38 +71,51 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
   const [locationUpdating, setLocationUpdating] = useState(false)
   const [activeTab, setActiveTab] = useState<"requests" | "history" | "donations">("requests")
   const watchIdRef = useRef<number | null>(null)
+  const onLocationUpdateRef = useRef(onLocationUpdate)
+  const [mapError, setMapError] = useState(false)
+
+  // Keep ref in sync without triggering effects
+  useEffect(() => {
+    onLocationUpdateRef.current = onLocationUpdate
+  }, [onLocationUpdate])
 
   const isOnCooldown = cooldownDays !== null
   const isInactive = manualInactive || isOnCooldown || donor.status === "inactive"
 
-  // Reverse geocode to get address
+  // Reverse geocode to get address (with graceful fallback)
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
     try {
       const res = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_MAPS_KEY}`
       )
       const data = await res.json()
+      if (data.status === "REQUEST_DENIED" || data.status === "OVER_QUERY_LIMIT") {
+        setLocationAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`)
+        setMapError(true)
+        return
+      }
       if (data.results?.[0]?.formatted_address) {
         setLocationAddress(data.results[0].formatted_address)
+      } else {
+        setLocationAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`)
       }
     } catch {
       setLocationAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`)
     }
   }, [])
 
-  // Start live location tracking
+  // Start live location tracking (stable -- no prop dependencies)
   const startLiveTracking = useCallback(() => {
     if (!navigator.geolocation) return
     setLocationUpdating(true)
 
-    // Get initial position
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }
         setLiveLocation(loc)
         reverseGeocode(loc.lat, loc.lng)
         updateDonor(donor.id, { location: loc })
-        onLocationUpdate?.(loc)
+        onLocationUpdateRef.current?.(loc)
         setLocationUpdating(false)
       },
       () => setLocationUpdating(false),
@@ -115,21 +128,23 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }
         setLiveLocation(loc)
         updateDonor(donor.id, { location: loc })
-        onLocationUpdate?.(loc)
+        onLocationUpdateRef.current?.(loc)
         reverseGeocode(loc.lat, loc.lng)
       },
       () => {},
       { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 }
     )
     watchIdRef.current = id
-  }, [donor.id, onLocationUpdate, reverseGeocode])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [donor.id, reverseGeocode])
 
-  // Stop watching on unmount
+  // Start tracking on mount, clean up on unmount (runs only once per donor.id)
   useEffect(() => {
     startLiveTracking()
     return () => {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current)
+        watchIdRef.current = null
       }
     }
   }, [startLiveTracking])
@@ -454,14 +469,34 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
             </div>
             {liveLocation && (
               <div className="mt-3 overflow-hidden rounded-lg border border-gray-200">
-                <iframe
-                  title="Live Location Map"
-                  width="100%"
-                  height="180"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  src={`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${liveLocation.lat},${liveLocation.lng}&zoom=14`}
-                />
+                {mapError ? (
+                  <div className="flex flex-col items-center justify-center bg-gray-100 p-6">
+                    <svg className="mb-2 h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <p className="text-sm font-medium text-gray-600">Map preview unavailable</p>
+                    <p className="mt-1 text-xs text-gray-400">Location: {liveLocation.lat.toFixed(4)}, {liveLocation.lng.toFixed(4)}</p>
+                    <a
+                      href={`https://www.google.com/maps?q=${liveLocation.lat},${liveLocation.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 text-xs font-semibold text-blue-600 hover:underline"
+                    >
+                      Open in Google Maps
+                    </a>
+                  </div>
+                ) : (
+                  <iframe
+                    title="Live Location Map"
+                    width="100%"
+                    height="180"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    src={`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${liveLocation.lat},${liveLocation.lng}&zoom=14`}
+                    onError={() => setMapError(true)}
+                  />
+                )}
               </div>
             )}
           </div>

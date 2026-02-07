@@ -99,6 +99,15 @@ export default function DonorPage() {
     setDonor(newDonor as DonorData)
   }
 
+  const handleLocationUpdate = useCallback((loc: { lat: number; lng: number }) => {
+    setDonorState(prev => {
+      if (!prev) return prev
+      const next = { ...prev, location: loc }
+      saveSession(next)
+      return next
+    })
+  }, [])
+
   const handleStatusChange = useCallback((status: string) => {
     setDonorState(prev => {
       const next = prev ? { ...prev, status } : null
@@ -127,14 +136,7 @@ export default function DonorPage() {
         <DonorDashboard
           donor={donor}
           onStatusChange={handleStatusChange}
-          onLocationUpdate={(loc) => {
-            setDonorState(prev => {
-              if (!prev) return prev
-              const next = { ...prev, location: loc }
-              saveSession(next)
-              return next
-            })
-          }}
+          onLocationUpdate={handleLocationUpdate}
           onLogout={handleLogout}
         />
         <Footer />
