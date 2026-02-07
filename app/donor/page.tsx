@@ -117,24 +117,51 @@ export default function DonorPage() {
               </div>
 
               <div className="space-y-4">
-                {[
-                  { title: "Instant Notifications", desc: "Receive immediate alerts when hospitals near you need your blood type urgently.", color: "blue", icon: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" },
-                  { title: "Location-Based Matching", desc: "Only get alerts from hospitals within 15km of your location.", color: "green", icon: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z" },
-                  { title: "Flexible Commitment", desc: "Set your availability, schedule breaks, and donate only when it suits you.", color: "amber", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
-                  { title: "Safe & Verified", desc: "All hospitals are verified. Your health data stays private and secure.", color: "red", icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" },
-                ].map((item) => (
-                  <div key={item.title} className="group flex items-start gap-4 rounded-2xl bg-white p-5 shadow-md transition-all hover:shadow-lg">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-${item.color}-100 to-${item.color}-200 transition-transform group-hover:scale-110`}>
-                      <svg className={`h-6 w-6 text-${item.color}-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900">{item.title}</h3>
-                      <p className="text-sm text-gray-600">{item.desc}</p>
-                    </div>
+                <div className="group flex items-start gap-4 rounded-2xl bg-white p-5 shadow-md transition-all hover:shadow-lg">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 transition-transform group-hover:scale-110">
+                    <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
                   </div>
-                ))}
+                  <div>
+                    <h3 className="font-bold text-gray-900">Instant Notifications</h3>
+                    <p className="text-sm text-gray-600">Receive immediate alerts when hospitals near you need your blood type urgently.</p>
+                  </div>
+                </div>
+                <div className="group flex items-start gap-4 rounded-2xl bg-white p-5 shadow-md transition-all hover:shadow-lg">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-green-100 to-green-200 transition-transform group-hover:scale-110">
+                    <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900">Location-Based Matching</h3>
+                    <p className="text-sm text-gray-600">Only get alerts from hospitals within 15km of your location.</p>
+                  </div>
+                </div>
+                <div className="group flex items-start gap-4 rounded-2xl bg-white p-5 shadow-md transition-all hover:shadow-lg">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-100 to-amber-200 transition-transform group-hover:scale-110">
+                    <svg className="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900">Flexible Commitment</h3>
+                    <p className="text-sm text-gray-600">Set your availability, schedule breaks, and donate only when it suits you.</p>
+                  </div>
+                </div>
+                <div className="group flex items-start gap-4 rounded-2xl bg-white p-5 shadow-md transition-all hover:shadow-lg">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-100 to-red-200 transition-transform group-hover:scale-110">
+                    <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900">Safe & Verified</h3>
+                    <p className="text-sm text-gray-600">All hospitals are verified. Your health data stays private and secure.</p>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-8 flex items-center gap-4 rounded-2xl bg-gray-900 p-5 text-white">

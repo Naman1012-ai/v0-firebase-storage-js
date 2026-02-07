@@ -9,7 +9,7 @@ export function Navbar() {
   return (
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur-lg">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-18 items-center justify-between py-3">
+        <div className="flex h-[4.5rem] items-center justify-between py-3">
           <Link href="/" className="group flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blood-500 to-blood-700 shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-blood-500/50">
               <svg className="h-7 w-7 text-white" viewBox="0 0 24 24" fill="currentColor">

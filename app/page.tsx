@@ -6,6 +6,7 @@ import { AboutSection } from "@/components/landing/about-section"
 import { Footer } from "@/components/footer"
 
 export default function Page() {
+  console.log("[v0] Landing page rendering")
   return (
     <main>
       <Navbar />
