@@ -205,6 +205,9 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
           </div>
         </div>
 
+        {/* Live Donor Map */}
+        <DonorMap hospitalLocation={hospital.location} hospitalName={hospital.name} />
+
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Send Request */}
           <div className="rounded-2xl bg-white p-6 shadow-lg">
