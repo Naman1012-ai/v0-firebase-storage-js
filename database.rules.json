@@ -27,6 +27,15 @@
         ".write": true
       }
     },
+    "donorDonations": {
+      ".read": true,
+      ".write": true,
+      "$donorId": {
+        ".read": true,
+        ".write": true,
+        ".indexOn": ["donatedAt", "hospitalId"]
+      }
+    },
     "stats": {
       ".read": true,
       ".write": true

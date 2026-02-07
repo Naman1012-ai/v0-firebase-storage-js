@@ -19,7 +19,7 @@ try {
   app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
   database = getDatabase(app)
 } catch (error) {
-  console.error("[v0] Firebase initialization failed:", error)
+  console.error("Firebase initialization failed:", error)
   app = null as unknown as FirebaseApp
   database = null as unknown as Database
 }
