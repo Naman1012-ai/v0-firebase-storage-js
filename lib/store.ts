@@ -116,6 +116,7 @@ export function addDonor(data: Omit<DonorRecord, "id">): DonorRecord {
   const newDonor: DonorRecord = { ...data, id: generateId() }
   donors.push(newDonor)
   setCollection("biolynk_donors", donors)
+  notifyChange()
   return newDonor
 }
 
@@ -125,6 +126,7 @@ export function updateDonor(id: string, updates: Partial<DonorRecord>): void {
   if (index !== -1) {
     donors[index] = { ...donors[index], ...updates }
     setCollection("biolynk_donors", donors)
+    notifyChange()
   }
 }
 
@@ -148,6 +150,7 @@ export function addHospital(data: Omit<HospitalRecord, "id">): HospitalRecord {
   const newHospital: HospitalRecord = { ...data, id: generateId() }
   hospitals.push(newHospital)
   setCollection("biolynk_hospitals", hospitals)
+  notifyChange()
   return newHospital
 }
 
@@ -161,6 +164,7 @@ export function addBloodRequest(data: Omit<BloodRequestRecord, "id">): BloodRequ
   const newReq: BloodRequestRecord = { ...data, id: generateId() }
   requests.push(newReq)
   setCollection("biolynk_requests", requests)
+  notifyChange()
   return newReq
 }
 
@@ -170,6 +174,7 @@ export function updateBloodRequest(id: string, updates: Partial<BloodRequestReco
   if (index !== -1) {
     requests[index] = { ...requests[index], ...updates }
     setCollection("biolynk_requests", requests)
+    notifyChange()
   }
 }
 
@@ -184,6 +189,7 @@ export function addDonorDonation(donorId: string, data: Omit<DonationRecord, "id
   const newDon = { ...data, id: generateId(), donorId }
   all.push(newDon)
   setCollection("biolynk_donations", all)
+  notifyChange()
   return newDon
 }
 
@@ -192,6 +198,7 @@ export function addNotification(data: Omit<NotificationRecord, "id">): void {
   const all = getCollection<NotificationRecord>("biolynk_notifications")
   all.push({ ...data, id: generateId() })
   setCollection("biolynk_notifications", all)
+  notifyChange()
 }
 
 // ---- STATS ----

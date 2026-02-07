@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { database } from "@/lib/firebase"
-import { ref, onValue } from "firebase/database"
+import { getStats, subscribe } from "@/lib/store"
 import { AnimatedCounter } from "@/components/animated-counter"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 
@@ -81,24 +80,14 @@ export function FeaturesSection() {
   const [hospitalCount, setHospitalCount] = useState(0)
 
   useEffect(() => {
-    const donorsRef = ref(database, "donors")
-    const unsubDonors = onValue(donorsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        setDonorCount(Object.keys(snapshot.val()).length)
-      }
-    })
-
-    const hospitalsRef = ref(database, "hospitals")
-    const unsubHospitals = onValue(hospitalsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        setHospitalCount(Object.keys(snapshot.val()).length)
-      }
-    })
-
-    return () => {
-      unsubDonors()
-      unsubHospitals()
+    const refresh = () => {
+      const stats = getStats()
+      setDonorCount(stats.donorCount)
+      setHospitalCount(stats.hospitalCount)
     }
+    refresh()
+    const unsub = subscribe(refresh)
+    return () => { unsub() }
   }, [])
 
   return (

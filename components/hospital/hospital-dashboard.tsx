@@ -1,8 +1,17 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { database } from "@/lib/firebase"
-import { ref, onValue, push, set, update, get } from "firebase/database"
+import {
+  getBloodRequests,
+  addBloodRequest,
+  updateBloodRequest,
+  getDonors,
+  getDonorById,
+  updateDonor,
+  addDonorDonation,
+  addNotification,
+  subscribe,
+} from "@/lib/store"
 
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
@@ -36,48 +45,40 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
   const [sending, setSending] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
 
-  // Real-time requests listener
+  // Requests listener
   useEffect(() => {
-    const requestsRef = ref(database, "bloodRequests")
-    const unsubscribe = onValue(requestsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val()
-        const hospitalRequests: BloodRequest[] = []
-        for (const [key, value] of Object.entries(data)) {
-          const req = value as Record<string, unknown>
-          if (req.hospitalId === hospital.id) {
-            hospitalRequests.push({ id: key, ...req } as unknown as BloodRequest)
-          }
-        }
-        setRequests(hospitalRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
-      }
-    })
-    return () => unsubscribe()
+    const refresh = () => {
+      const allRequests = getBloodRequests()
+      const hospitalRequests = allRequests
+        .filter((req) => req.hospitalId === hospital.id)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) as BloodRequest[]
+      setRequests(hospitalRequests)
+    }
+    refresh()
+    const unsub = subscribe(refresh)
+    return () => unsub()
   }, [hospital.id])
 
-  // Real-time donor counts
+  // Donor counts listener
   useEffect(() => {
-    const donorsRef = ref(database, "donors")
-    const unsubscribe = onValue(donorsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val()
-        let total = 0
-        let active = 0
-        const byBlood: Record<string, number> = {}
-        bloodGroups.forEach(bg => { byBlood[bg] = 0 })
+    const refresh = () => {
+      const allDonors = getDonors()
+      let total = 0
+      let active = 0
+      const byBlood: Record<string, number> = {}
+      bloodGroups.forEach(bg => { byBlood[bg] = 0 })
 
-        for (const value of Object.values(data)) {
-          const donor = value as Record<string, unknown>
-          total++
-          if (donor.status === "active") active++
-          const bg = donor.bloodGroup as string
-          if (bg && byBlood[bg] !== undefined) byBlood[bg]++
-        }
-
-        setDonorCounts({ total, active, byBlood })
+      for (const donor of allDonors) {
+        total++
+        if (donor.status === "active") active++
+        if (donor.bloodGroup && byBlood[donor.bloodGroup] !== undefined) byBlood[donor.bloodGroup]++
       }
-    })
-    return () => unsubscribe()
+
+      setDonorCounts({ total, active, byBlood })
+    }
+    refresh()
+    const unsub = subscribe(refresh)
+    return () => unsub()
   }, [])
 
   const sendRequest = async () => {

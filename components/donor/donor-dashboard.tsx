@@ -1,8 +1,14 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { database } from "@/lib/firebase"
-import { ref, onValue, update, get, push, set } from "firebase/database"
+import {
+  getBloodRequests,
+  updateBloodRequest,
+  getDonorDonations,
+  addNotification,
+  updateDonor,
+  subscribe,
+} from "@/lib/store"
 
 interface BloodRequest {
   id: string
@@ -60,8 +66,7 @@ export function DonorDashboard({ donor, onStatusChange }: DonorDashboardProps) {
         setCooldownDays(null)
         setIsInactive(false)
         if (donor.status === "inactive") {
-          const donorRef = ref(database, `donors/${donor.id}`)
-          update(donorRef, { status: "active" })
+          updateDonor(donor.id, { status: "active" })
           onStatusChange("active")
         }
       }
@@ -72,69 +77,57 @@ export function DonorDashboard({ donor, onStatusChange }: DonorDashboardProps) {
     checkCooldown()
   }, [checkCooldown])
 
-  // Real-time blood requests listener
+  // Blood requests listener
   useEffect(() => {
-    const requestsRef = ref(database, "bloodRequests")
-    const unsubscribe = onValue(requestsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val()
-        const matchingRequests: BloodRequest[] = []
-        for (const [key, value] of Object.entries(data)) {
-          const req = value as Record<string, unknown>
-          if (
-            (req.bloodGroup === donor.bloodGroup || req.bloodGroup === "Any") &&
-            (req.status === "pending" || req.donorId === donor.id)
-          ) {
-            matchingRequests.push({ id: key, ...req } as unknown as BloodRequest)
-          }
-        }
-        setRequests(matchingRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
-      } else {
-        setRequests([])
-      }
-    })
-    return () => unsubscribe()
+    const refresh = () => {
+      const allRequests = getBloodRequests()
+      const matching = allRequests.filter(
+        (req) =>
+          (req.bloodGroup === donor.bloodGroup || req.bloodGroup === "Any") &&
+          (req.status === "pending" || req.donorId === donor.id)
+      )
+      setRequests(
+        matching.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) as BloodRequest[]
+      )
+    }
+    refresh()
+    const unsub = subscribe(refresh)
+    return () => unsub()
   }, [donor.bloodGroup, donor.id])
 
-  // Real-time donations listener
+  // Donations listener
   useEffect(() => {
-    const donationsRef = ref(database, `donorDonations/${donor.id}`)
-    const unsubscribe = onValue(donationsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val()
-        const donationList: Donation[] = Object.entries(data).map(([key, value]) => ({
-          id: key,
-          ...(value as Record<string, unknown>),
-        })) as unknown as Donation[]
-        setDonations(donationList.sort((a, b) => new Date(b.donatedAt).getTime() - new Date(a.donatedAt).getTime()))
-      }
-    })
-    return () => unsubscribe()
+    const refresh = () => {
+      const donationList = getDonorDonations(donor.id) as unknown as Donation[]
+      setDonations(
+        donationList.sort((a, b) => new Date(b.donatedAt).getTime() - new Date(a.donatedAt).getTime())
+      )
+    }
+    refresh()
+    const unsub = subscribe(refresh)
+    return () => unsub()
   }, [donor.id])
 
-  const acceptRequest = async (requestId: string) => {
+  const acceptRequest = (requestId: string) => {
     if (isInactive) return
     try {
-      const requestRef = ref(database, `bloodRequests/${requestId}`)
-      const snapshot = await get(requestRef)
-      if (!snapshot.exists()) return
+      const allRequests = getBloodRequests()
+      const request = allRequests.find((r) => r.id === requestId)
+      if (!request) return
 
-      const request = snapshot.val()
       if (request.status !== "pending") {
         alert("This request has already been accepted by another donor.")
         return
       }
 
-      await update(requestRef, {
+      updateBloodRequest(requestId, {
         status: "accepted",
         acceptedBy: donor.name,
         donorId: donor.id,
         acceptedAt: new Date().toISOString(),
       })
 
-      // Create notification for hospital
-      const notifRef = push(ref(database, "notifications"))
-      await set(notifRef, {
+      addNotification({
         type: "donor_accepted",
         hospitalId: request.hospitalId,
         donorId: donor.id,

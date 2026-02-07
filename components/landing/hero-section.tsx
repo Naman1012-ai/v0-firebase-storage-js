@@ -2,8 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { database } from "@/lib/firebase"
-import { ref, onValue, get, set } from "firebase/database"
+import { getStats, subscribe } from "@/lib/store"
 import { AnimatedCounter } from "@/components/animated-counter"
 
 export function HeroSection() {
@@ -11,38 +10,14 @@ export function HeroSection() {
   const [hospitalCount, setHospitalCount] = useState(0)
 
   useEffect(() => {
-    // Initialize stats node if it doesn't exist, then listen for real-time updates
-    const statsRef = ref(database, "stats")
-    get(statsRef).then((snapshot) => {
-      if (!snapshot.exists()) {
-        set(statsRef, { donors: 0, hospitals: 0 })
-      }
-    }).catch(() => {})
-
-    // Listen to real donor count
-    const donorsRef = ref(database, "donors")
-    const unsubDonors = onValue(donorsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        setDonorCount(Object.keys(snapshot.val()).length)
-      } else {
-        setDonorCount(0)
-      }
-    })
-
-    // Listen to real hospital count
-    const hospitalsRef = ref(database, "hospitals")
-    const unsubHospitals = onValue(hospitalsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        setHospitalCount(Object.keys(snapshot.val()).length)
-      } else {
-        setHospitalCount(0)
-      }
-    })
-
-    return () => {
-      unsubDonors()
-      unsubHospitals()
+    const refresh = () => {
+      const stats = getStats()
+      setDonorCount(stats.donorCount)
+      setHospitalCount(stats.hospitalCount)
     }
+    refresh()
+    const unsub = subscribe(refresh)
+    return () => { unsub() }
   }, [])
 
   return (
