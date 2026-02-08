@@ -62,11 +62,25 @@ export async function completeRequest(
   donorId: string
 ): Promise<ApiResponse<BloodRequest>> {
   try {
+    const now = new Date().toISOString()
+    const COOLDOWN_DAYS = 56
+    const cooldownUntil = new Date(
+      Date.now() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000
+    ).toISOString()
+
+    // Atomic update: complete request + set donor cooldown
     const updates: Record<string, unknown> = {}
     updates[`requests/${requestId}/status`] = "completed"
     updates[`requests/${requestId}/donationApproved`] = true
     updates[`requests/${requestId}/donationNumber`] = donationNumber
-    updates[`requests/${requestId}/approvedAt`] = new Date().toISOString()
+    updates[`requests/${requestId}/approvedAt`] = now
+
+    // Set donor into 56-day cooldown
+    if (donorId) {
+      updates[`donors/${donorId}/status`] = "inactive"
+      updates[`donors/${donorId}/lastDonationApproved`] = now
+      updates[`donors/${donorId}/cooldownUntil`] = cooldownUntil
+    }
 
     await update(ref(database), updates)
 

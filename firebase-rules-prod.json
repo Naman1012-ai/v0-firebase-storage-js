@@ -1,0 +1,50 @@
+{
+  "rules": {
+    "donors": {
+      "$donorId": {
+        ".read": true,
+        ".write": "auth != null && (auth.uid === $donorId || root.child('hospitals').child(auth.uid).exists())",
+        "acceptedRequests": {
+          "$requestId": {
+            ".write": true
+          }
+        }
+      }
+    },
+    "hospitals": {
+      "$hospitalId": {
+        ".read": true,
+        ".write": "auth != null && auth.uid === $hospitalId",
+        "requests": {
+          "$requestId": {
+            ".write": true
+          }
+        }
+      }
+    },
+    "requests": {
+      ".read": true,
+      "$requestId": {
+        ".write": "auth != null"
+      }
+    },
+    "donations": {
+      ".read": true,
+      "$donationId": {
+        ".write": "auth != null"
+      }
+    },
+    "notifications": {
+      ".read": true,
+      "$notificationId": {
+        ".write": "auth != null"
+      }
+    },
+    "rejections": {
+      ".read": true,
+      "$rejectionId": {
+        ".write": "auth != null"
+      }
+    }
+  }
+}
