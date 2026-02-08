@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useCallback, useEffect, type FormEvent } from "react"
-import { findHospital } from "@/lib/store"
+import { findHospitalByEmailAndLicense } from "@/lib/store"
 import Link from "next/link"
 import { HospitalRegistration } from "@/components/hospital/hospital-registration"
 import { HospitalDashboard } from "@/components/hospital/hospital-dashboard"
@@ -38,7 +38,8 @@ function saveHospitalSession(hospital: HospitalData | null) {
 export default function HospitalPage() {
   const [hospital, setHospitalState] = useState<HospitalData | null>(null)
   const [view, setView] = useState<"hero" | "login" | "register">("hero")
-  const [loginId, setLoginId] = useState("")
+  const [loginEmail, setLoginEmail] = useState("")
+  const [loginLicense, setLoginLicense] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
   const [loginError, setLoginError] = useState("")
   const [loginLoading, setLoginLoading] = useState(false)
@@ -63,10 +64,10 @@ export default function HospitalPage() {
     setLoginError("")
     setLoginLoading(true)
     try {
-      const found = findHospital(loginId.trim())
+      const found = findHospitalByEmailAndLicense(loginEmail.trim(), loginLicense.trim())
 
       if (!found) {
-        setLoginError("No hospital found. Please check your email, name, or license number.")
+        setLoginError("No hospital found. Please check your email and license number.")
         setLoginLoading(false)
         return
       }
@@ -244,13 +245,23 @@ export default function HospitalPage() {
                   </div>
                   <form onSubmit={handleLogin} className="space-y-5">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">Email / Hospital Name / License No.</label>
+                      <label className="mb-2 block text-sm font-medium text-gray-700">Email</label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" /></svg>
                         </span>
-                        <input type="text" value={loginId} onChange={e => setLoginId(e.target.value)} required
-                          className="w-full rounded-xl border-2 border-gray-200 py-3 pl-12 pr-4 font-medium transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="Email, hospital name, or license number" />
+                        <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required
+                          className="w-full rounded-xl border-2 border-gray-200 py-3 pl-12 pr-4 font-medium transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="hospital@example.com" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-700">License Number</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                        </span>
+                        <input type="text" value={loginLicense} onChange={e => setLoginLicense(e.target.value)} required
+                          className="w-full rounded-xl border-2 border-gray-200 py-3 pl-12 pr-4 font-medium transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="LIC-12345" />
                       </div>
                     </div>
                     <div>
@@ -284,13 +295,10 @@ export default function HospitalPage() {
 
               {view === "hero" && (
                 <div className="flex items-center justify-center rounded-3xl border border-gray-100/50 bg-white/60 p-8 text-center shadow-xl backdrop-blur-xl">
-                  <div>
-                    <div className="mx-auto mb-4 flex h-20 w-20 animate-float items-center justify-center rounded-2xl bg-gradient-to-br from-blood-100 to-blood-200 shadow-lg">
-                      <svg className="h-10 w-10 text-blood-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900">Hospital Portal</h3>
+                  <div className="mx-auto flex h-20 w-20 animate-float items-center justify-center rounded-2xl bg-gradient-to-br from-blood-100 to-blood-200 shadow-lg">
+                    <svg className="h-10 w-10 text-blood-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
                   </div>
                 </div>
               )}

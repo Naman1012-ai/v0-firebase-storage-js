@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useCallback, useEffect, type FormEvent } from "react"
-import { findDonorByName } from "@/lib/store"
+import { findDonorByEmail } from "@/lib/store"
 import { DonorNavbar } from "@/components/donor/donor-navbar"
 import { DonorRegistration } from "@/components/donor/donor-registration"
 import { DonorDashboard } from "@/components/donor/donor-dashboard"
@@ -39,7 +39,7 @@ function saveSession(donor: DonorData | null) {
 export default function DonorPage() {
   const [donor, setDonorState] = useState<DonorData | null>(null)
   const [view, setView] = useState<"register" | "login">("register")
-  const [loginName, setLoginName] = useState("")
+  const [loginEmail, setLoginEmail] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
   const [loginError, setLoginError] = useState("")
   const [loginLoading, setLoginLoading] = useState(false)
@@ -69,9 +69,9 @@ export default function DonorPage() {
     setLoginLoading(true)
 
     try {
-      const found = findDonorByName(loginName.trim())
+      const found = findDonorByEmail(loginEmail.trim())
       if (!found) {
-        setLoginError("No donor found with this name. Please check your name or register.")
+        setLoginError("No donor found with this email. Please check your email or register.")
         setLoginLoading(false)
         return
       }
@@ -91,7 +91,7 @@ export default function DonorPage() {
   const handleLogout = () => {
     setDonor(null)
     setView("login")
-    setLoginName("")
+    setLoginEmail("")
     setLoginPassword("")
   }
 
@@ -267,10 +267,10 @@ export default function DonorPage() {
                 ) : (
                   <form onSubmit={handleLogin} className="space-y-6 rounded-3xl bg-white p-8 shadow-xl">
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-gray-700">Full Name</label>
-                      <input type="text" value={loginName} onChange={e => setLoginName(e.target.value)} required
+                      <label className="mb-2 block text-sm font-semibold text-gray-700">Registered Email</label>
+                      <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required
                         className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500"
-                        placeholder="Enter your registered name" />
+                        placeholder="Enter your registered email" />
                     </div>
                     <div>
                       <label className="mb-2 block text-sm font-semibold text-gray-700">Password</label>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { findDonorByName, addDonor } from "@/lib/store"
+import { findDonorByName, addDonor, calculateAgeFromDOB } from "@/lib/store"
 
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 const diseases = [
@@ -14,7 +14,7 @@ const diseases = [
 
 interface DonorFormData {
   name: string
-  age: string
+  dateOfBirth: string
   weight: string
   bloodGroup: string
   phone: string
@@ -43,7 +43,7 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
   const [locationDetected, setLocationDetected] = useState(false)
   const [error, setError] = useState("")
   const [form, setForm] = useState<DonorFormData>({
-    name: "", age: "", weight: "", bloodGroup: "",
+    name: "", dateOfBirth: "", weight: "", bloodGroup: "",
     phone: "", email: "",
     lat: null, lng: null,
     diseases: [], noDiseases: false,
@@ -90,13 +90,16 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
   const validateStep = (s: number): boolean => {
     switch (s) {
       case 1:
-        if (!form.name || !form.age || !form.weight || !form.bloodGroup) {
+        if (!form.name || !form.dateOfBirth || !form.weight || !form.bloodGroup) {
           setError("Please fill in all required fields.")
           return false
         }
-        if (Number(form.age) < 18 || Number(form.age) > 65) {
-          setError("Age must be between 18 and 65.")
-          return false
+        {
+          const calcAge = calculateAgeFromDOB(form.dateOfBirth)
+          if (calcAge < 18 || calcAge > 65) {
+            setError("Age must be between 18 and 65 (calculated from Date of Birth).")
+            return false
+          }
         }
         if (Number(form.weight) < 45) {
           setError("Minimum weight is 45 kg.")
@@ -157,7 +160,8 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
       const donorData = {
         name: form.name.trim(),
         bloodGroup: form.bloodGroup,
-        age: Number(form.age),
+        age: calculateAgeFromDOB(form.dateOfBirth),
+        dateOfBirth: form.dateOfBirth,
         weight: Number(form.weight),
         phone: form.phone,
         email: form.email,
@@ -261,14 +265,17 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700">Age *</label>
+              <label className="mb-2 block text-sm font-semibold text-gray-700">Date of Birth *</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 </span>
-                <input type="number" value={form.age} onChange={e => updateField("age", e.target.value)} min={18} max={65}
-                  className="w-full rounded-xl border-2 border-gray-200 py-3 pl-12 pr-4 font-medium transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500" placeholder="Years" />
+                <input type="date" value={form.dateOfBirth} onChange={e => updateField("dateOfBirth", e.target.value)} max={today}
+                  className="w-full rounded-xl border-2 border-gray-200 py-3 pl-12 pr-4 font-medium transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500" />
               </div>
+              {form.dateOfBirth && (
+                <p className="mt-1 text-xs text-gray-500">Age: {calculateAgeFromDOB(form.dateOfBirth)} years</p>
+              )}
             </div>
             <div>
               <label className="mb-2 block text-sm font-semibold text-gray-700">Weight *</label>

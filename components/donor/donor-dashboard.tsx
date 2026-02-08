@@ -15,6 +15,8 @@ import {
   getNotificationsForDonor,
   markAllNotificationsRead,
   getDonorById,
+  COOLDOWN_DAYS,
+  calculateAgeFromDOB,
   type BloodRequestRecord,
   type NotificationRecord,
 } from "@/lib/store"
@@ -82,11 +84,37 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
     name: donor.name,
     phone: (donor.phone as string) || "",
     email: (donor.email as string) || "",
-    age: (donor.age as number)?.toString() || "",
     weight: (donor.weight as number)?.toString() || "",
+    diseases: (donor.medical as string[]) || [],
+    noDiseases: (donor.medical as string[])?.includes("none") || (donor.medical as string[])?.length === 0,
   })
   const [editError, setEditError] = useState("")
   const [editSaving, setEditSaving] = useState(false)
+
+  const diseases = [
+    { value: "hiv", label: "HIV/AIDS" },
+    { value: "hepatitis", label: "Hepatitis B/C" },
+    { value: "diabetes", label: "Diabetes" },
+    { value: "heart", label: "Heart Disease" },
+    { value: "malaria", label: "Malaria (3mo)" },
+  ]
+
+  const toggleEditDisease = (disease: string) => {
+    if (disease === "none") {
+      setEditForm(prev => ({ ...prev, noDiseases: !prev.noDiseases, diseases: [] }))
+    } else {
+      setEditForm(prev => ({
+        ...prev,
+        noDiseases: false,
+        diseases: prev.diseases.includes(disease)
+          ? prev.diseases.filter(d => d !== disease)
+          : [...prev.diseases, disease]
+      }))
+    }
+  }
+
+  // Calculate age from DOB
+  const donorAge = donor.dateOfBirth ? calculateAgeFromDOB(donor.dateOfBirth as string) : (donor.age as number) || null
 
   // Keep ref in sync without triggering effects
   useEffect(() => {
@@ -167,7 +195,7 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
   const checkCooldown = useCallback(() => {
     if (donor.lastDonationApproved) {
       const lastDate = new Date(donor.lastDonationApproved as string)
-      const cooldownEnd = new Date(lastDate.getTime() + 60 * 24 * 60 * 60 * 1000)
+      const cooldownEnd = new Date(lastDate.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000)
       const now = new Date()
       if (now < cooldownEnd) {
         const remaining = Math.ceil((cooldownEnd.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
@@ -315,22 +343,19 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
       setEditError("Email is required.")
       return
     }
-    if (editForm.age && (Number(editForm.age) < 18 || Number(editForm.age) > 65)) {
-      setEditError("Age must be between 18 and 65.")
-      return
-    }
     if (editForm.weight && Number(editForm.weight) < 45) {
       setEditError("Minimum weight is 45 kg.")
       return
     }
     setEditSaving(true)
     try {
+      const medicalData = editForm.noDiseases || editForm.diseases.length === 0 ? ["none"] : editForm.diseases
       const updates: Partial<DonorData> = {
         name: editForm.name.trim(),
         phone: editForm.phone,
         email: editForm.email,
-        age: editForm.age ? Number(editForm.age) : undefined,
         weight: editForm.weight ? Number(editForm.weight) : undefined,
+        medical: medicalData,
       }
       updateDonor(donor.id, updates)
       onProfileUpdate?.(updates)
@@ -469,8 +494,9 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
                       name: current.name,
                       phone: current.phone || "",
                       email: current.email || "",
-                      age: current.age?.toString() || "",
                       weight: current.weight?.toString() || "",
+                      diseases: current.medical?.filter(m => m !== "none") || [],
+                      noDiseases: current.medical?.includes("none") || current.medical?.length === 0,
                     })
                   }
                   setEditError("")
@@ -496,7 +522,7 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
                 <div>
                   <h4 className="font-bold text-blue-800">Recovery Period Active</h4>
                   <p className="mt-1 text-sm text-blue-700">
-                    You are in a 60-day recovery period after your last donation. You can donate again in <span className="font-bold">{cooldownDays} days</span>.
+                    You are in a 56-day recovery period after your last donation. You can donate again in <span className="font-bold">{cooldownDays} days</span>.
                   </p>
                 </div>
               </div>
@@ -527,13 +553,41 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
                   )}
                 </div>
               </div>
-              <button
-                onClick={startLiveTracking}
-                disabled={locationUpdating}
-                className="rounded-lg bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700 transition-all hover:bg-green-200 disabled:opacity-50"
-              >
-                {locationUpdating ? "Updating..." : "Refresh"}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    if (!navigator.geolocation) return
+                    setLocationUpdating(true)
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+                        setLiveLocation(loc)
+                        reverseGeocode(loc.lat, loc.lng)
+                        updateDonor(donor.id, { location: loc })
+                        onLocationUpdateRef.current?.(loc)
+                        setLocationUpdating(false)
+                      },
+                      () => setLocationUpdating(false),
+                      { enableHighAccuracy: true, timeout: 10000 }
+                    )
+                  }}
+                  disabled={locationUpdating}
+                  className="flex items-center gap-1.5 rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-all hover:bg-blue-200 disabled:opacity-50"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {locationUpdating ? "Detecting..." : "Detect Live Location"}
+                </button>
+                <button
+                  onClick={startLiveTracking}
+                  disabled={locationUpdating}
+                  className="rounded-lg bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700 transition-all hover:bg-green-200 disabled:opacity-50"
+                >
+                  {locationUpdating ? "Updating..." : "Refresh"}
+                </button>
+              </div>
             </div>
             {liveLocation && (
               <div className="mt-3 overflow-hidden rounded-lg border border-gray-200">
@@ -864,7 +918,7 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
               <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">{editError}</div>
             )}
 
-            <div className="space-y-4">
+            <div className="max-h-[70vh] space-y-4 overflow-y-auto">
               <div>
                 <label className="mb-1 block text-sm font-semibold text-gray-700">Full Name</label>
                 <input
@@ -874,28 +928,21 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
                   className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              {donorAge !== null && (
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">Age</label>
-                  <input
-                    type="number"
-                    value={editForm.age}
-                    onChange={e => setEditForm(prev => ({ ...prev, age: e.target.value }))}
-                    min={18}
-                    max={65}
-                    className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500"
-                  />
+                  <label className="mb-1 block text-sm font-semibold text-gray-700">Age (auto-calculated)</label>
+                  <div className="rounded-xl border-2 border-gray-100 bg-gray-50 px-4 py-3 text-gray-600">{donorAge} years</div>
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">Weight (kg)</label>
-                  <input
-                    type="number"
-                    value={editForm.weight}
-                    onChange={e => setEditForm(prev => ({ ...prev, weight: e.target.value }))}
-                    min={45}
-                    className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500"
-                  />
-                </div>
+              )}
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-gray-700">Weight (kg)</label>
+                <input
+                  type="number"
+                  value={editForm.weight}
+                  onChange={e => setEditForm(prev => ({ ...prev, weight: e.target.value }))}
+                  min={45}
+                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500"
+                />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-semibold text-gray-700">Phone</label>
@@ -915,6 +962,26 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
                   className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-blood-500 focus:ring-2 focus:ring-blood-500"
                 />
               </div>
+
+              {/* Disease Editing */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">Medical Conditions</label>
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    {diseases.map(d => (
+                      <label key={d.value} className="flex cursor-pointer items-center gap-2 rounded-lg border bg-white p-2.5 hover:border-red-300">
+                        <input type="checkbox" checked={editForm.diseases.includes(d.value)} onChange={() => toggleEditDisease(d.value)} className="h-4 w-4 text-red-600" />
+                        <span className="text-sm">{d.label}</span>
+                      </label>
+                    ))}
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border bg-white p-2.5 hover:border-green-300">
+                      <input type="checkbox" checked={editForm.noDiseases} onChange={() => toggleEditDisease("none")} className="h-4 w-4 text-green-600" />
+                      <span className="text-sm text-green-700">None</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowEditProfile(false)}

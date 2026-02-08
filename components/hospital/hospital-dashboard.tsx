@@ -133,7 +133,7 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
         approvedAt: new Date().toISOString(),
       })
 
-      // Update donor status to inactive (60-day cooldown)
+      // Update donor status to inactive (56-day cooldown)
       const donorData = getDonorById(request.donorId)
       if (donorData) {
         updateDonor(request.donorId, {

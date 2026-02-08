@@ -37,7 +37,7 @@ export default function TermsPage() {
 
             <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
               <h2 className="mb-4 text-2xl font-bold text-gray-900">3. Donor Responsibilities</h2>
-              <p className="leading-relaxed">Donors must provide truthful medical information and health history. Donors agree to a 60-day cooldown period between donations as enforced by the platform. Accepting a blood request constitutes a commitment to donate at the specified hospital.</p>
+              <p className="leading-relaxed">Donors must provide truthful medical information and health history. Donors agree to a 56-day cooldown period between donations as enforced by the platform. Accepting a blood request constitutes a commitment to donate at the specified hospital.</p>
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">

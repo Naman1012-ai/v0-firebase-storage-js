@@ -17,6 +17,20 @@ export interface DonorRecord {
   registeredAt: string
   donationCount: number
   lastDonationApproved?: string
+  dateOfBirth?: string
+}
+
+export const COOLDOWN_DAYS = 56
+
+export function calculateAgeFromDOB(dob: string): number {
+  const birth = new Date(dob)
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--
+  }
+  return age
 }
 
 export interface HospitalRecord {
@@ -111,6 +125,10 @@ export function findDonorByName(name: string): DonorRecord | undefined {
   return getDonors().find(d => d.name.toLowerCase() === name.toLowerCase())
 }
 
+export function findDonorByEmail(email: string): DonorRecord | undefined {
+  return getDonors().find(d => d.email.toLowerCase() === email.trim().toLowerCase())
+}
+
 export function addDonor(data: Omit<DonorRecord, "id">): DonorRecord {
   const donors = getDonors()
   const newDonor: DonorRecord = { ...data, id: generateId() }
@@ -142,6 +160,14 @@ export function findHospital(identifier: string): HospitalRecord | undefined {
       h.email.toLowerCase() === trimmed ||
       h.name.toLowerCase() === trimmed ||
       h.license.toLowerCase() === trimmed
+  )
+}
+
+export function findHospitalByEmailAndLicense(email: string, license: string): HospitalRecord | undefined {
+  const e = email.trim().toLowerCase()
+  const l = license.trim().toLowerCase()
+  return getHospitals().find(
+    h => h.email.toLowerCase() === e && h.license.toLowerCase() === l
   )
 }
 
