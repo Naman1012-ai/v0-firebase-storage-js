@@ -11,6 +11,8 @@ import {
   addDonorDonation,
   addNotification,
   subscribe,
+  getEligibleDonorsForRequest,
+  reactivateExpiredCooldowns,
 } from "@/lib/store"
 import { DonorMap } from "@/components/hospital/donor-map"
 
@@ -45,6 +47,7 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
   const [requestForm, setRequestForm] = useState({ bloodGroup: "A+", units: 1, urgency: "critical" })
   const [sending, setSending] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [matchedDonorCount, setMatchedDonorCount] = useState(0)
 
   // Requests listener
   useEffect(() => {
@@ -63,6 +66,7 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
   // Donor counts listener
   useEffect(() => {
     const refresh = () => {
+      reactivateExpiredCooldowns()
       const allDonors = getDonors()
       let total = 0
       let active = 0
@@ -85,7 +89,10 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
   const sendRequest = () => {
     setSending(true)
     try {
-      addBloodRequest({
+      // Auto-reactivate expired cooldowns before sending
+      reactivateExpiredCooldowns()
+
+      const newRequest = addBloodRequest({
         hospitalId: hospital.id,
         hospitalName: hospital.name,
         hospitalLocation: hospital.location,
@@ -95,8 +102,33 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
         status: "pending",
         createdAt: new Date().toISOString(),
       })
+
+      // Find eligible donors within 15km and notify them
+      const eligibleDonors = getEligibleDonorsForRequest(
+        requestForm.bloodGroup,
+        hospital.location
+      )
+
+      for (const donor of eligibleDonors) {
+        addNotification({
+          type: "blood_request",
+          donorId: donor.id,
+          hospitalId: hospital.id,
+          hospitalName: hospital.name,
+          bloodGroup: requestForm.bloodGroup,
+          requestId: newRequest.id,
+          message: `Emergency blood request from ${hospital.name}: ${requestForm.bloodGroup} blood needed (${requestForm.units} unit(s), ${requestForm.urgency} urgency). Please check your requests.`,
+          createdAt: new Date().toISOString(),
+          read: false,
+        })
+      }
+
       setShowSuccess(true)
-      setTimeout(() => setShowSuccess(false), 3000)
+      setMatchedDonorCount(eligibleDonors.length)
+      setTimeout(() => {
+        setShowSuccess(false)
+        setMatchedDonorCount(0)
+      }, 5000)
     } catch (err) {
       console.error("Failed to send request:", err)
     } finally {
@@ -143,13 +175,16 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
         })
       }
 
-      // Create notification for donor
+      // Create notification for donor with exact required format
       addNotification({
         type: "donation_approved",
         donorId: request.donorId,
+        hospitalId: hospital.id,
         hospitalName: hospital.name,
+        bloodGroup: request.bloodGroup,
+        requestId: request.id,
         donationNumber,
-        message: `Your donation has been approved! Donation Number: ${donationNumber}`,
+        message: `You have been approved for donating blood of ${request.bloodGroup} by ${hospital.name}.`,
         createdAt: new Date().toISOString(),
         read: false,
       })
@@ -220,7 +255,12 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
 
             {showSuccess && (
               <div className="mb-4 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-700">
-                Request sent successfully! Matching donors will be notified.
+                <p>Request sent successfully!</p>
+                <p className="mt-1 text-xs font-medium">
+                  {matchedDonorCount > 0
+                    ? `${matchedDonorCount} eligible donor(s) within 15km have been notified.`
+                    : "No eligible donors found within 15km radius at this time. Request is visible to matching donors."}
+                </p>
               </div>
             )}
 

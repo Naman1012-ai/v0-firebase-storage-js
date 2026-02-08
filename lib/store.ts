@@ -232,6 +232,60 @@ export function getAllDonations(): (DonationRecord & { donorId: string })[] {
   return getCollection<DonationRecord & { donorId: string }>("biolynk_donations")
 }
 
+// ---- COOLDOWN HELPERS ----
+export function isDonorOnCooldown(donor: DonorRecord): boolean {
+  if (!donor.lastDonationApproved) return false
+  const lastDate = new Date(donor.lastDonationApproved)
+  const cooldownEnd = new Date(lastDate.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000)
+  return new Date() < cooldownEnd
+}
+
+export function getCooldownRemainingDays(donor: DonorRecord): number | null {
+  if (!donor.lastDonationApproved) return null
+  const lastDate = new Date(donor.lastDonationApproved)
+  const cooldownEnd = new Date(lastDate.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000)
+  const now = new Date()
+  if (now >= cooldownEnd) return null
+  return Math.ceil((cooldownEnd.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
+}
+
+// Auto-reactivate donors whose cooldown has expired
+export function reactivateExpiredCooldowns(): void {
+  const donors = getDonors()
+  let changed = false
+  for (let i = 0; i < donors.length; i++) {
+    const d = donors[i]
+    if (d.status === "inactive" && d.lastDonationApproved && !isDonorOnCooldown(d)) {
+      donors[i] = { ...d, status: "active" }
+      changed = true
+    }
+  }
+  if (changed) {
+    setCollection("biolynk_donors", donors)
+    notifyChange()
+  }
+}
+
+// Get eligible donors for a hospital request (matching blood group, within 15km, active)
+export function getEligibleDonorsForRequest(
+  bloodGroup: string,
+  hospitalLocation: { lat: number; lng: number }
+): DonorRecord[] {
+  reactivateExpiredCooldowns()
+  const donors = getDonors()
+  return donors.filter(d => {
+    if (d.status !== "active") return false
+    if (isDonorOnCooldown(d)) return false
+    if (bloodGroup !== "Any" && d.bloodGroup !== bloodGroup) return false
+    if (!d.location) return false
+    const dist = getDistanceKm(
+      hospitalLocation.lat, hospitalLocation.lng,
+      d.location.lat, d.location.lng
+    )
+    return dist <= GPS_RADIUS_KM
+  })
+}
+
 // ---- STATS ----
 export function getStats() {
   const donors = getDonors()

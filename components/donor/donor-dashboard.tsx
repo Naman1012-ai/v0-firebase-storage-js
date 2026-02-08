@@ -17,12 +17,14 @@ import {
   getDonorById,
   COOLDOWN_DAYS,
   calculateAgeFromDOB,
+  reactivateExpiredCooldowns,
   type BloodRequestRecord,
   type NotificationRecord,
 } from "@/lib/store"
 
 interface BloodRequest {
   id: string
+  hospitalId: string
   hospitalName: string
   bloodGroup: string
   units: number
@@ -32,6 +34,8 @@ interface BloodRequest {
   acceptedBy?: string
   donorId?: string
   hospitalLocation?: { lat: number; lng: number }
+  donationApproved?: boolean
+  approvedAt?: string
 }
 
 interface Donation {
@@ -215,14 +219,23 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
   }, [checkCooldown])
 
   // Blood requests listener with 15km GPS radius + rejection filtering
+  // Shows ONLY hospital-originated requests (all have hospitalId)
   useEffect(() => {
     const refresh = () => {
+      // Auto-reactivate expired cooldowns
+      reactivateExpiredCooldowns()
+
       const allRequests = getBloodRequests()
       const rejectedIds = getDonorRejections(donor.id)
       const loc = liveLocation || donor.location
       const matching = allRequests.filter((req: BloodRequestRecord) => {
+        // Only show requests that originate from hospitals (have hospitalId)
+        if (!req.hospitalId) return false
+        // Skip requests this donor has rejected
         if (rejectedIds.includes(req.id)) return false
+        // Always show requests this donor accepted or was approved for
         if (req.donorId === donor.id) return true
+        // For pending requests: match blood group and distance
         if (req.bloodGroup !== donor.bloodGroup && req.bloodGroup !== "Any") return false
         if (req.status !== "pending") return false
         if (loc && req.hospitalLocation) {
@@ -386,6 +399,7 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
   }
 
   const pendingRequests = requests.filter(r => r.status === "pending")
+  const approvedRequests = requests.filter(r => r.donorId === donor.id && r.donationApproved === true)
   const unreadNotifications = notifications.filter(n => !n.read).length
 
   return (
@@ -402,6 +416,32 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
               <div className="absolute -right-1 -top-1 h-3 w-3 animate-ping rounded-full bg-white" />
             </div>
             <span className="font-semibold">You have {unreadNotifications} new notification{unreadNotifications > 1 ? "s" : ""}</span>
+          </div>
+        )}
+
+        {/* Approval Confirmation Messages */}
+        {approvedRequests.length > 0 && (
+          <div className="space-y-3">
+            {approvedRequests.map(req => (
+              <div key={`approval-${req.id}`} className="flex items-start gap-3 rounded-2xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-5 shadow-lg">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-green-100">
+                  <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-bold text-green-800">Donation Approved</h4>
+                  <p className="mt-1 text-sm font-medium text-green-700">
+                    {`You have been approved for donating blood of ${req.bloodGroup} by ${req.hospitalName}.`}
+                  </p>
+                  {req.approvedAt && (
+                    <p className="mt-1 text-xs text-green-600">
+                      Approved on: {new Date(req.approvedAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

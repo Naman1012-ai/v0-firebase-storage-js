@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { findDonorByName, addDonor, calculateAgeFromDOB } from "@/lib/store"
+import { findDonorByName, findDonorByEmail, addDonor, calculateAgeFromDOB } from "@/lib/store"
 
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 const diseases = [
@@ -153,6 +153,13 @@ export function DonorRegistration({ onRegistered, onSwitchToLogin }: DonorRegist
       const existing = findDonorByName(form.name.trim())
       if (existing) {
         setError("A donor with this name already exists. Please use a different name or login.")
+        setLoading(false)
+        return
+      }
+
+      const existingEmail = findDonorByEmail(form.email.trim())
+      if (existingEmail) {
+        setError("A donor with this email already exists. Please login instead.")
         setLoading(false)
         return
       }

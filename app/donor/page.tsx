@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useCallback, useEffect, type FormEvent } from "react"
-import { findDonorByEmail } from "@/lib/store"
+import { findDonorByEmail, updateDonor, reactivateExpiredCooldowns } from "@/lib/store"
 import { DonorNavbar } from "@/components/donor/donor-navbar"
 import { DonorRegistration } from "@/components/donor/donor-registration"
 import { DonorDashboard } from "@/components/donor/donor-dashboard"
@@ -44,6 +44,10 @@ export default function DonorPage() {
   const [loginError, setLoginError] = useState("")
   const [loginLoading, setLoginLoading] = useState(false)
   const [hydrated, setHydrated] = useState(false)
+  const [locationStep, setLocationStep] = useState(false)
+  const [locationDetecting, setLocationDetecting] = useState(false)
+  const [locationError, setLocationError] = useState("")
+  const [pendingDonor, setPendingDonor] = useState<DonorData | null>(null)
 
   // Wrapper that syncs to session storage
   const setDonor = useCallback((value: DonorData | null | ((prev: DonorData | null) => DonorData | null)) => {
@@ -69,6 +73,9 @@ export default function DonorPage() {
     setLoginLoading(true)
 
     try {
+      // Auto-reactivate expired cooldowns before login
+      reactivateExpiredCooldowns()
+
       const found = findDonorByEmail(loginEmail.trim())
       if (!found) {
         setLoginError("No donor found with this email. Please check your email or register.")
@@ -77,7 +84,10 @@ export default function DonorPage() {
       }
 
       if (found.password === loginPassword) {
-        setDonor(found as DonorData)
+        // Instead of immediately logging in, show location detection step
+        setPendingDonor(found as DonorData)
+        setLocationStep(true)
+        setLocationError("")
       } else {
         setLoginError("Incorrect password. Please try again.")
       }
@@ -88,11 +98,64 @@ export default function DonorPage() {
     }
   }
 
+  const handleLocationDetection = () => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser. Please use a modern browser.")
+      return
+    }
+    setLocationDetecting(true)
+    setLocationError("")
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+        if (pendingDonor) {
+          // Update donor location in store
+          updateDonor(pendingDonor.id, { location: loc })
+          const donorWithLoc = { ...pendingDonor, location: loc }
+          setDonor(donorWithLoc)
+          setLocationStep(false)
+          setPendingDonor(null)
+        }
+        setLocationDetecting(false)
+      },
+      (err) => {
+        setLocationDetecting(false)
+        switch (err.code) {
+          case err.PERMISSION_DENIED:
+            setLocationError("Location permission denied. Please allow location access in your browser settings to continue.")
+            break
+          case err.POSITION_UNAVAILABLE:
+            setLocationError("Location unavailable. Please check your device location settings.")
+            break
+          case err.TIMEOUT:
+            setLocationError("Location detection timed out. Please try again.")
+            break
+          default:
+            setLocationError("Failed to detect location. Please try again.")
+        }
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    )
+  }
+
+  const handleSkipLocation = () => {
+    // Allow skip but warn - use previously stored location
+    if (pendingDonor) {
+      setDonor(pendingDonor)
+      setLocationStep(false)
+      setPendingDonor(null)
+    }
+  }
+
   const handleLogout = () => {
     setDonor(null)
     setView("login")
     setLoginEmail("")
     setLoginPassword("")
+    setLocationStep(false)
+    setPendingDonor(null)
+    setLocationError("")
   }
 
   const handleRegistered = (newDonor: Record<string, unknown>) => {
@@ -131,6 +194,86 @@ export default function DonorPage() {
           <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blood-200 border-t-blood-600" />
           <p className="text-gray-500">Loading...</p>
         </div>
+      </main>
+    )
+  }
+
+  // Location detection step after login
+  if (locationStep && pendingDonor) {
+    return (
+      <main className="min-h-screen bg-gray-100">
+        <DonorNavbar isLoggedIn={false} onLogout={handleLogout} />
+        <section className="flex min-h-[80vh] items-center justify-center py-12">
+          <div className="mx-auto w-full max-w-md px-4">
+            <div className="rounded-3xl bg-white p-8 shadow-xl">
+              <div className="mb-6 text-center">
+                <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-blue-200 shadow-lg">
+                  <svg className="h-10 w-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">Location Required</h2>
+                <p className="mt-2 text-gray-500">
+                  We need your live location to match you with nearby hospitals. This ensures you only receive requests within 15km of your area.
+                </p>
+              </div>
+
+              {locationError && (
+                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+                  {locationError}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <button
+                  onClick={handleLocationDetection}
+                  disabled={locationDetecting}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 py-4 text-lg font-bold text-white shadow-lg transition-all hover:from-blue-600 hover:to-blue-700 disabled:opacity-60"
+                >
+                  {locationDetecting ? (
+                    <>
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Detecting Location...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Allow Location Access
+                    </>
+                  )}
+                </button>
+
+                {pendingDonor.location && (
+                  <button
+                    onClick={handleSkipLocation}
+                    className="w-full rounded-xl border-2 border-gray-200 bg-white py-3 text-sm font-semibold text-gray-600 transition-all hover:bg-gray-50"
+                  >
+                    Use previously saved location
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-6 rounded-xl bg-blue-50 p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="mt-0.5 h-5 w-5 shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-semibold text-blue-800">Why is location needed?</p>
+                    <p className="mt-1 text-xs text-blue-700">
+                      Your location is used to match you with hospitals within 15km. It is stored securely and only used for blood request matching.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <Footer />
       </main>
     )
   }
