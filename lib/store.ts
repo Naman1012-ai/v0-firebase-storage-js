@@ -1,4 +1,18 @@
-// localStorage-based data store replacing Firebase
+// Firebase-backed data store with local in-memory cache for synchronous reads
+// Every write persists to Firebase RTDB and updates the local cache.
+// Firebase onValue listeners pull remote changes for cross-device real-time sync.
+
+import { database } from "@/lib/firebase"
+import {
+  ref,
+  onValue,
+  push,
+  set,
+  update,
+  remove,
+} from "firebase/database"
+
+// ---- INTERFACES (unchanged) ----
 
 export interface DonorRecord {
   id: string
@@ -67,6 +81,7 @@ export interface BloodRequestRecord {
 
 export interface DonationRecord {
   id: string
+  donorId?: string
   donationNumber: string
   hospitalName: string
   hospitalId: string
@@ -91,71 +106,178 @@ export interface NotificationRecord {
   read: boolean
 }
 
-// Helper to generate IDs
+// ---- IN-MEMORY CACHE ----
+// Used for synchronous reads. Updated by Firebase listeners.
+
+const cache: {
+  donors: DonorRecord[]
+  hospitals: HospitalRecord[]
+  requests: BloodRequestRecord[]
+  donations: (DonationRecord & { donorId: string })[]
+  notifications: NotificationRecord[]
+  rejections: { requestId: string; donorId: string }[]
+  initialized: boolean
+} = {
+  donors: [],
+  hospitals: [],
+  requests: [],
+  donations: [],
+  notifications: [],
+  rejections: [],
+  initialized: false,
+}
+
+// ---- FIREBASE REAL-TIME LISTENERS ----
+// These automatically sync remote data into the local cache
+
+let listenersAttached = false
+
+function attachFirebaseListeners() {
+  if (typeof window === "undefined") return
+  if (listenersAttached) return
+  listenersAttached = true
+
+  onValue(ref(database, "donors"), (snapshot) => {
+    const data = snapshot.val()
+    if (data) {
+      cache.donors = Object.entries(data).map(([key, val]) => ({
+        ...(val as DonorRecord),
+        id: key,
+      }))
+    } else {
+      cache.donors = []
+    }
+    cache.initialized = true
+    notifyChange()
+  })
+
+  onValue(ref(database, "hospitals"), (snapshot) => {
+    const data = snapshot.val()
+    if (data) {
+      cache.hospitals = Object.entries(data).map(([key, val]) => ({
+        ...(val as HospitalRecord),
+        id: key,
+      }))
+    } else {
+      cache.hospitals = []
+    }
+    notifyChange()
+  })
+
+  onValue(ref(database, "requests"), (snapshot) => {
+    const data = snapshot.val()
+    if (data) {
+      cache.requests = Object.entries(data).map(([key, val]) => ({
+        ...(val as BloodRequestRecord),
+        id: key,
+      }))
+    } else {
+      cache.requests = []
+    }
+    notifyChange()
+  })
+
+  onValue(ref(database, "donations"), (snapshot) => {
+    const data = snapshot.val()
+    if (data) {
+      cache.donations = Object.entries(data).map(([key, val]) => ({
+        ...(val as DonationRecord & { donorId: string }),
+        id: key,
+      }))
+    } else {
+      cache.donations = []
+    }
+    notifyChange()
+  })
+
+  onValue(ref(database, "notifications"), (snapshot) => {
+    const data = snapshot.val()
+    if (data) {
+      cache.notifications = Object.entries(data).map(([key, val]) => ({
+        ...(val as NotificationRecord),
+        id: key,
+      }))
+    } else {
+      cache.notifications = []
+    }
+    notifyChange()
+  })
+
+  onValue(ref(database, "rejections"), (snapshot) => {
+    const data = snapshot.val()
+    if (data) {
+      cache.rejections = Object.entries(data).map(([, val]) => val as { requestId: string; donorId: string })
+    } else {
+      cache.rejections = []
+    }
+    notifyChange()
+  })
+}
+
+// Initialize listeners on first import (client-side only)
+if (typeof window !== "undefined") {
+  attachFirebaseListeners()
+}
+
+// ---- HELPER: Generate ID ----
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
 }
 
-// Generic CRUD helpers
-function getCollection<T>(key: string): T[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
-function setCollection<T>(key: string, data: T[]): void {
-  if (typeof window === "undefined") return
-  localStorage.setItem(key, JSON.stringify(data))
-}
-
 // ---- DONORS ----
 export function getDonors(): DonorRecord[] {
-  return getCollection<DonorRecord>("biolynk_donors")
+  return cache.donors
 }
 
 export function getDonorById(id: string): DonorRecord | undefined {
-  return getDonors().find(d => d.id === id)
+  return cache.donors.find(d => d.id === id)
 }
 
 export function findDonorByName(name: string): DonorRecord | undefined {
-  return getDonors().find(d => d.name.toLowerCase() === name.toLowerCase())
+  return cache.donors.find(d => d.name.toLowerCase() === name.toLowerCase())
 }
 
 export function findDonorByEmail(email: string): DonorRecord | undefined {
-  return getDonors().find(d => d.email.toLowerCase() === email.trim().toLowerCase())
+  return cache.donors.find(d => d.email.toLowerCase() === email.trim().toLowerCase())
 }
 
 export function addDonor(data: Omit<DonorRecord, "id">): DonorRecord {
-  const donors = getDonors()
-  const newDonor: DonorRecord = { ...data, id: generateId() }
-  donors.push(newDonor)
-  setCollection("biolynk_donors", donors)
+  // Push to Firebase -- generates a Firebase key
+  const donorRef = push(ref(database, "donors"))
+  const id = donorRef.key || generateId()
+  const newDonor: DonorRecord = { ...data, id }
+
+  // Optimistic update to local cache
+  cache.donors.push(newDonor)
   notifyChange()
+
+  // Persist to Firebase (fire-and-forget)
+  set(donorRef, newDonor).catch(err => console.error("[v0] Firebase write error (addDonor):", err))
+
   return newDonor
 }
 
 export function updateDonor(id: string, updates: Partial<DonorRecord>): void {
-  const donors = getDonors()
-  const index = donors.findIndex(d => d.id === id)
+  // Optimistic local update
+  const index = cache.donors.findIndex(d => d.id === id)
   if (index !== -1) {
-    donors[index] = { ...donors[index], ...updates }
-    setCollection("biolynk_donors", donors)
+    cache.donors[index] = { ...cache.donors[index], ...updates }
     notifyChange()
   }
+
+  // Persist to Firebase
+  const donorRef = ref(database, `donors/${id}`)
+  update(donorRef, updates).catch(err => console.error("[v0] Firebase write error (updateDonor):", err))
 }
 
 // ---- HOSPITALS ----
 export function getHospitals(): HospitalRecord[] {
-  return getCollection<HospitalRecord>("biolynk_hospitals")
+  return cache.hospitals
 }
 
 export function findHospital(identifier: string): HospitalRecord | undefined {
   const trimmed = identifier.trim().toLowerCase()
-  return getHospitals().find(
+  return cache.hospitals.find(
     h =>
       h.email.toLowerCase() === trimmed ||
       h.name.toLowerCase() === trimmed ||
@@ -166,70 +288,104 @@ export function findHospital(identifier: string): HospitalRecord | undefined {
 export function findHospitalByEmailAndLicense(email: string, license: string): HospitalRecord | undefined {
   const e = email.trim().toLowerCase()
   const l = license.trim().toLowerCase()
-  return getHospitals().find(
+  return cache.hospitals.find(
     h => h.email.toLowerCase() === e && h.license.toLowerCase() === l
   )
 }
 
 export function addHospital(data: Omit<HospitalRecord, "id">): HospitalRecord {
-  const hospitals = getHospitals()
-  const newHospital: HospitalRecord = { ...data, id: generateId() }
-  hospitals.push(newHospital)
-  setCollection("biolynk_hospitals", hospitals)
+  const hospitalRef = push(ref(database, "hospitals"))
+  const id = hospitalRef.key || generateId()
+  const newHospital: HospitalRecord = { ...data, id }
+
+  cache.hospitals.push(newHospital)
   notifyChange()
+
+  set(hospitalRef, newHospital).catch(err => console.error("[v0] Firebase write error (addHospital):", err))
+
   return newHospital
 }
 
 // ---- BLOOD REQUESTS ----
 export function getBloodRequests(): BloodRequestRecord[] {
-  return getCollection<BloodRequestRecord>("biolynk_requests")
+  return cache.requests
 }
 
 export function addBloodRequest(data: Omit<BloodRequestRecord, "id">): BloodRequestRecord {
-  const requests = getBloodRequests()
-  const newReq: BloodRequestRecord = { ...data, id: generateId() }
-  requests.push(newReq)
-  setCollection("biolynk_requests", requests)
+  const requestRef = push(ref(database, "requests"))
+  const id = requestRef.key || generateId()
+  const newReq: BloodRequestRecord = { ...data, id }
+
+  // Optimistic local update
+  cache.requests.push(newReq)
   notifyChange()
+
+  // Atomic Firebase update: request + hospital reference
+  const updates: Record<string, unknown> = {}
+  updates[`requests/${id}`] = newReq
+  if (data.hospitalId) {
+    updates[`hospitals/${data.hospitalId}/requests/${id}`] = true
+  }
+  update(ref(database), updates).catch(err => console.error("[v0] Firebase write error (addBloodRequest):", err))
+
   return newReq
 }
 
 export function updateBloodRequest(id: string, updates: Partial<BloodRequestRecord>): void {
-  const requests = getBloodRequests()
-  const index = requests.findIndex(r => r.id === id)
+  // Optimistic local update
+  const index = cache.requests.findIndex(r => r.id === id)
   if (index !== -1) {
-    requests[index] = { ...requests[index], ...updates }
-    setCollection("biolynk_requests", requests)
+    cache.requests[index] = { ...cache.requests[index], ...updates }
     notifyChange()
   }
+
+  // Build Firebase atomic update
+  const fbUpdates: Record<string, unknown> = {}
+  for (const [key, val] of Object.entries(updates)) {
+    fbUpdates[`requests/${id}/${key}`] = val
+  }
+
+  // Cross-sync: if donor accepts, add donor reference
+  if (updates.donorId && updates.status === "accepted") {
+    fbUpdates[`donors/${updates.donorId}/acceptedRequests/${id}`] = true
+  }
+
+  update(ref(database), fbUpdates).catch(err => console.error("[v0] Firebase write error (updateBloodRequest):", err))
 }
 
 // ---- DONOR DONATIONS ----
 export function getDonorDonations(donorId: string): DonationRecord[] {
-  const all = getCollection<DonationRecord & { donorId: string }>("biolynk_donations")
-  return all.filter(d => d.donorId === donorId)
+  return cache.donations.filter(d => d.donorId === donorId)
 }
 
 export function addDonorDonation(donorId: string, data: Omit<DonationRecord, "id">): DonationRecord {
-  const all = getCollection<DonationRecord & { donorId: string }>("biolynk_donations")
-  const newDon = { ...data, id: generateId(), donorId }
-  all.push(newDon)
-  setCollection("biolynk_donations", all)
+  const donationRef = push(ref(database, "donations"))
+  const id = donationRef.key || generateId()
+  const newDon = { ...data, id, donorId }
+
+  cache.donations.push(newDon)
   notifyChange()
+
+  set(donationRef, newDon).catch(err => console.error("[v0] Firebase write error (addDonorDonation):", err))
+
   return newDon
 }
 
 // ---- NOTIFICATIONS ----
 export function addNotification(data: Omit<NotificationRecord, "id">): void {
-  const all = getCollection<NotificationRecord>("biolynk_notifications")
-  all.push({ ...data, id: generateId() })
-  setCollection("biolynk_notifications", all)
+  const notifRef = push(ref(database, "notifications"))
+  const id = notifRef.key || generateId()
+  const notification = { ...data, id }
+
+  cache.notifications.push(notification)
   notifyChange()
+
+  set(notifRef, notification).catch(err => console.error("[v0] Firebase write error (addNotification):", err))
 }
 
 // ---- ALL DONATIONS ----
 export function getAllDonations(): (DonationRecord & { donorId: string })[] {
-  return getCollection<DonationRecord & { donorId: string }>("biolynk_donations")
+  return cache.donations
 }
 
 // ---- COOLDOWN HELPERS ----
@@ -251,17 +407,19 @@ export function getCooldownRemainingDays(donor: DonorRecord): number | null {
 
 // Auto-reactivate donors whose cooldown has expired
 export function reactivateExpiredCooldowns(): void {
-  const donors = getDonors()
   let changed = false
-  for (let i = 0; i < donors.length; i++) {
-    const d = donors[i]
+  for (let i = 0; i < cache.donors.length; i++) {
+    const d = cache.donors[i]
     if (d.status === "inactive" && d.lastDonationApproved && !isDonorOnCooldown(d)) {
-      donors[i] = { ...d, status: "active" }
+      cache.donors[i] = { ...d, status: "active" }
       changed = true
+      // Persist to Firebase
+      update(ref(database, `donors/${d.id}`), { status: "active" }).catch(err =>
+        console.error("[v0] Firebase write error (reactivate):", err)
+      )
     }
   }
   if (changed) {
-    setCollection("biolynk_donors", donors)
     notifyChange()
   }
 }
@@ -272,8 +430,7 @@ export function getEligibleDonorsForRequest(
   hospitalLocation: { lat: number; lng: number }
 ): DonorRecord[] {
   reactivateExpiredCooldowns()
-  const donors = getDonors()
-  return donors.filter(d => {
+  return cache.donors.filter(d => {
     if (d.status !== "active") return false
     if (isDonorOnCooldown(d)) return false
     if (bloodGroup !== "Any" && d.bloodGroup !== bloodGroup) return false
@@ -288,9 +445,9 @@ export function getEligibleDonorsForRequest(
 
 // ---- STATS ----
 export function getStats() {
-  const donors = getDonors()
-  const hospitals = getHospitals()
-  const totalDonations = getAllDonations().length
+  const donors = cache.donors
+  const hospitals = cache.hospitals
+  const totalDonations = cache.donations.length
   const active = donors.filter(d => d.status === "active").length
   const byBlood: Record<string, number> = {}
   for (const d of donors) {
@@ -308,53 +465,59 @@ export function getStats() {
 
 // ---- NOTIFICATIONS (read helpers) ----
 export function getNotificationsForDonor(donorId: string): NotificationRecord[] {
-  return getCollection<NotificationRecord>("biolynk_notifications")
+  return cache.notifications
     .filter(n => n.donorId === donorId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
 export function getNotificationsForHospital(hospitalId: string): NotificationRecord[] {
-  return getCollection<NotificationRecord>("biolynk_notifications")
+  return cache.notifications
     .filter(n => n.hospitalId === hospitalId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
 export function markNotificationRead(id: string): void {
-  const all = getCollection<NotificationRecord>("biolynk_notifications")
-  const idx = all.findIndex(n => n.id === id)
+  const idx = cache.notifications.findIndex(n => n.id === id)
   if (idx !== -1) {
-    all[idx] = { ...all[idx], read: true }
-    setCollection("biolynk_notifications", all)
+    cache.notifications[idx] = { ...cache.notifications[idx], read: true }
     notifyChange()
+    update(ref(database, `notifications/${id}`), { read: true }).catch(err =>
+      console.error("[v0] Firebase write error (markNotificationRead):", err)
+    )
   }
 }
 
 export function markAllNotificationsRead(donorId: string): void {
-  const all = getCollection<NotificationRecord>("biolynk_notifications")
   let changed = false
-  for (let i = 0; i < all.length; i++) {
-    if (all[i].donorId === donorId && !all[i].read) {
-      all[i] = { ...all[i], read: true }
+  const fbUpdates: Record<string, unknown> = {}
+  for (let i = 0; i < cache.notifications.length; i++) {
+    if (cache.notifications[i].donorId === donorId && !cache.notifications[i].read) {
+      cache.notifications[i] = { ...cache.notifications[i], read: true }
+      fbUpdates[`notifications/${cache.notifications[i].id}/read`] = true
       changed = true
     }
   }
   if (changed) {
-    setCollection("biolynk_notifications", all)
     notifyChange()
+    update(ref(database), fbUpdates).catch(err =>
+      console.error("[v0] Firebase write error (markAllNotificationsRead):", err)
+    )
   }
 }
 
 // ---- REJECTED REQUESTS TRACKING ----
-export function rejectBloodRequest(requestId: string, donorId: string, donorName: string): void {
-  // Add a rejection record so the donor doesn't see this request again
-  const rejections = getCollection<{ requestId: string; donorId: string }>("biolynk_rejections")
-  rejections.push({ requestId, donorId })
-  setCollection("biolynk_rejections", rejections)
+export function rejectBloodRequest(requestId: string, donorId: string, _donorName: string): void {
+  cache.rejections.push({ requestId, donorId })
   notifyChange()
+
+  const rejRef = push(ref(database, "rejections"))
+  set(rejRef, { requestId, donorId }).catch(err =>
+    console.error("[v0] Firebase write error (rejectBloodRequest):", err)
+  )
 }
 
 export function getDonorRejections(donorId: string): string[] {
-  return getCollection<{ requestId: string; donorId: string }>("biolynk_rejections")
+  return cache.rejections
     .filter(r => r.donorId === donorId)
     .map(r => r.requestId)
 }
@@ -364,7 +527,7 @@ export function getDistanceKm(
   lat1: number, lng1: number,
   lat2: number, lng2: number
 ): number {
-  const R = 6371 // Earth radius in km
+  const R = 6371
   const dLat = ((lat2 - lat1) * Math.PI) / 180
   const dLng = ((lng2 - lng1) * Math.PI) / 180
   const a =
@@ -379,7 +542,7 @@ export function getDistanceKm(
 
 export const GPS_RADIUS_KM = 15
 
-// Event system for cross-component reactivity
+// ---- EVENT SYSTEM (unchanged) ----
 type Listener = () => void
 const listeners = new Set<Listener>()
 
@@ -397,5 +560,3 @@ export function notifyChange(): void {
     listeners.forEach(fn => fn())
   }, 0)
 }
-
-
