@@ -180,9 +180,9 @@ export default function HospitalPage() {
         </div>
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
+          <div className={`grid items-center gap-12${view !== "hero" ? " lg:grid-cols-2" : ""}`}>
             {/* Left: Hero */}
-            <div className="space-y-6 text-center lg:text-left">
+            <div className={`space-y-6 text-center${view === "hero" ? " mx-auto max-w-3xl" : " lg:text-left"}`}>
               <div className="inline-flex animate-pulse items-center gap-2 rounded-full bg-red-100 px-4 py-2 text-sm font-bold text-blood-700">
                 <span className="h-2 w-2 animate-ping rounded-full bg-blood-600" />
                 Hospital Portal Access
@@ -196,7 +196,7 @@ export default function HospitalPage() {
               </p>
 
               {view === "hero" && (
-                <div className="flex flex-col justify-center gap-4 sm:flex-row lg:justify-start">
+                <div className={`flex flex-col justify-center gap-4 sm:flex-row${view !== "hero" ? " lg:justify-start" : ""}`}>
                   <button onClick={() => setView("login")}
                     className="rounded-2xl bg-gradient-to-r from-blood-600 to-blood-700 px-8 py-4 font-bold text-white shadow-lg shadow-blood-500/30 transition-all duration-300 hover:scale-105 hover:shadow-xl">
                     <span className="flex items-center gap-2">
@@ -231,7 +231,7 @@ export default function HospitalPage() {
             </div>
 
             {/* Right: Forms */}
-            <div className="relative">
+            {view !== "hero" && <div className="relative">
               {view === "login" && (
                 <div className="rounded-3xl border border-gray-100/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl">
                   <div className="mb-8 text-center">
@@ -293,16 +293,7 @@ export default function HospitalPage() {
                 />
               )}
 
-              {view === "hero" && (
-                <div className="flex items-center justify-center rounded-3xl border border-gray-100/50 bg-white/60 p-8 text-center shadow-xl backdrop-blur-xl">
-                  <div className="mx-auto flex h-20 w-20 animate-float items-center justify-center rounded-2xl bg-gradient-to-br from-blood-100 to-blood-200 shadow-lg">
-                    <svg className="h-10 w-10 text-blood-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                  </div>
-                </div>
-              )}
-            </div>
+            </div>}
           </div>
         </div>
       </section>
