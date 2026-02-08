@@ -234,11 +234,11 @@ export function getDonorById(id: string): DonorRecord | undefined {
 }
 
 export function findDonorByName(name: string): DonorRecord | undefined {
-  return cache.donors.find(d => d.name.toLowerCase() === name.toLowerCase())
+  return cache.donors.find(d => (d.name || "").toLowerCase() === (name || "").toLowerCase())
 }
 
 export function findDonorByEmail(email: string): DonorRecord | undefined {
-  return cache.donors.find(d => d.email.toLowerCase() === email.trim().toLowerCase())
+  return cache.donors.find(d => (d.email || "").toLowerCase() === (email || "").trim().toLowerCase())
 }
 
 export function addDonor(data: Omit<DonorRecord, "id">): DonorRecord {
@@ -276,20 +276,20 @@ export function getHospitals(): HospitalRecord[] {
 }
 
 export function findHospital(identifier: string): HospitalRecord | undefined {
-  const trimmed = identifier.trim().toLowerCase()
+  const trimmed = (identifier || "").trim().toLowerCase()
   return cache.hospitals.find(
     h =>
-      h.email.toLowerCase() === trimmed ||
-      h.name.toLowerCase() === trimmed ||
-      h.license.toLowerCase() === trimmed
+      (h.email || "").toLowerCase() === trimmed ||
+      (h.name || "").toLowerCase() === trimmed ||
+      (h.license || "").toLowerCase() === trimmed
   )
 }
 
 export function findHospitalByEmailAndLicense(email: string, license: string): HospitalRecord | undefined {
-  const e = email.trim().toLowerCase()
-  const l = license.trim().toLowerCase()
+  const e = (email || "").trim().toLowerCase()
+  const l = (license || "").trim().toLowerCase()
   return cache.hospitals.find(
-    h => h.email.toLowerCase() === e && h.license.toLowerCase() === l
+    h => (h.email || "").toLowerCase() === e && (h.license || "").toLowerCase() === l
   )
 }
 
@@ -433,7 +433,7 @@ export function getEligibleDonorsForRequest(
   return cache.donors.filter(d => {
     if (d.status !== "active") return false
     if (isDonorOnCooldown(d)) return false
-    if (bloodGroup !== "Any" && d.bloodGroup !== bloodGroup) return false
+    if (bloodGroup !== "Any" && (d.bloodGroup || "") !== bloodGroup) return false
     if (!d.location) return false
     const dist = getDistanceKm(
       hospitalLocation.lat, hospitalLocation.lng,
@@ -451,7 +451,8 @@ export function getStats() {
   const active = donors.filter(d => d.status === "active").length
   const byBlood: Record<string, number> = {}
   for (const d of donors) {
-    byBlood[d.bloodGroup] = (byBlood[d.bloodGroup] || 0) + 1
+    const bg = d.bloodGroup || "Unknown"
+    byBlood[bg] = (byBlood[bg] || 0) + 1
   }
   return {
     donorCount: donors.length,

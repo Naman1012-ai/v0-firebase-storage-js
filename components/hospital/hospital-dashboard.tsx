@@ -142,7 +142,7 @@ export function HospitalDashboard({ hospital }: HospitalDashboardProps) {
       // Generate donation number
       const date = new Date()
       const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "")
-      const bgCode = request.bloodGroup.replace("+", "P").replace("-", "N")
+      const bgCode = (request.bloodGroup || "O+").replace("+", "P").replace("-", "N")
       const rand = Math.random().toString(36).substring(2, 8).toUpperCase()
       const donationNumber = `DON-${dateStr}-${bgCode}-${rand}`
 

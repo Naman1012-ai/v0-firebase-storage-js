@@ -344,7 +344,7 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
 
   const handleSaveProfile = () => {
     setEditError("")
-    if (!editForm.name.trim()) {
+    if (!(editForm.name || "").trim()) {
       setEditError("Name is required.")
       return
     }
@@ -364,7 +364,7 @@ export function DonorDashboard({ donor, onStatusChange, onLocationUpdate, onLogo
     try {
       const medicalData = editForm.noDiseases || editForm.diseases.length === 0 ? ["none"] : editForm.diseases
       const updates: Partial<DonorData> = {
-        name: editForm.name.trim(),
+        name: (editForm.name || "").trim(),
         phone: editForm.phone,
         email: editForm.email,
         weight: editForm.weight ? Number(editForm.weight) : undefined,

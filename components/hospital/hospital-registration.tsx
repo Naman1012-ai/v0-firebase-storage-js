@@ -80,7 +80,7 @@ export function HospitalRegistration({ onRegistered, onSwitchToLogin }: Hospital
     setError("")
     try {
       const existing = getHospitals()
-      if (existing.some(h => h.name.toLowerCase() === form.name.trim().toLowerCase())) {
+      if (existing.some(h => (h.name || "").toLowerCase() === (form.name || "").trim().toLowerCase())) {
         setError("A hospital with this name already exists.")
         setLoading(false)
         return

@@ -151,9 +151,11 @@ export function DonorMap({ hospitalLocation, hospitalName }: DonorMapProps) {
       const isActive = donor.status === "active"
       const bgColor = isActive ? "#16a34a" : "#9ca3af"
       const borderColor = isActive ? "#15803d" : "#6b7280"
+      const safeBloodGroup = donor?.bloodGroup || "O+"
+      const safeName = donor?.name || "Unknown"
 
       const icon = L.divIcon({
-        html: `<div style="background:${bgColor};color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:10px;border:2px solid ${borderColor};box-shadow:0 1px 4px rgba(0,0,0,0.3);">${donor.bloodGroup.replace("+", "+").replace("-", "-")}</div>`,
+        html: `<div style="background:${bgColor || "#dc2626"};color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:10px;border:2px solid ${borderColor || "#6b7280"};box-shadow:0 1px 4px rgba(0,0,0,0.3);">${safeBloodGroup}</div>`,
         iconSize: [28, 28],
         iconAnchor: [14, 14],
         className: "",
@@ -169,7 +171,7 @@ export function DonorMap({ hospitalLocation, hospitalName }: DonorMapProps) {
       L.marker([donor.location.lat, donor.location.lng], { icon })
         .addTo(markersRef.current!)
         .bindPopup(
-          `<strong>${donor.name}</strong><br/>Blood: ${donor.bloodGroup}<br/>Status: ${isActive ? "Active" : "Inactive"}<br/>Distance: ${dist} km`
+          `<strong>${safeName}</strong><br/>Blood: ${safeBloodGroup}<br/>Status: ${isActive ? "Active" : "Inactive"}<br/>Distance: ${dist} km`
         )
     }
   }, [nearbyDonors, mapReady, hospitalLocation.lat, hospitalLocation.lng])
